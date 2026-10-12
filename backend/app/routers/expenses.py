@@ -1,33 +1,18 @@
 import datetime
-from decimal import Decimal
-from typing import Literal
-
 from fastapi import APIRouter, HTTPException, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
+
+from app.schemas import Amount, Category, Currency, Merchant
 
 router = APIRouter(prefix="/expenses", tags=["expenses"])
-
-Currency = Literal["GBP", "MYR"]
-Category = Literal[
-    "Food",
-    "Groceries",
-    "Transport",
-    "Shopping",
-    "Subscriptions",
-    "Entertainment",
-    "Bills",
-    "Health",
-    "Travel",
-    "Other",
-]
 
 
 class Expense(BaseModel):
     id: int | None = None  # the client doesn't send this; the server sets it
-    amount: Decimal = Field(gt=0, max_digits=12, decimal_places=2)
+    amount: Amount
     currency: Currency
     date: datetime.date
-    merchant: str
+    merchant: Merchant
     category: Category
     note: str | None = None
 
@@ -74,3 +59,4 @@ def replace_expense(expense_id: int, new_expense: Expense) -> Expense:
 @router.delete("/{expense_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_expense(expense_id: int) -> None:
     expenses.remove(find_expense(expense_id))
+
