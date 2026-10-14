@@ -1,6 +1,8 @@
 from fastapi import APIRouter, HTTPException, status
+from fastapi.exceptions import RequestValidationError
+from pydantic import ValidationError
 
-from app.schemas import ExpenseCreate, ExpenseRead
+from app.schemas import ExpenseCreate, ExpenseRead, ExpenseUpdate
 
 router = APIRouter(prefix="/expenses", tags=["expenses"])
 
@@ -36,10 +38,14 @@ def get_expense(expense_id: int) -> ExpenseRead:
     return find_expense(expense_id)
 
 
-@router.put("/{expense_id}")
-def replace_expense(expense_id: int, new_expense: ExpenseCreate) -> ExpenseRead:
+@router.patch("/{expense_id}")
+def update_expense(expense_id: int, changes: ExpenseUpdate) -> ExpenseRead:
     old_expense = find_expense(expense_id)
-    updated = ExpenseRead(id=expense_id, **new_expense.model_dump())
+    sent_fields = changes.model_dump(exclude_unset=True)
+    try:
+        updated = ExpenseRead.model_validate(old_expense.model_dump() | sent_fields)
+    except ValidationError as e:
+        raise RequestValidationError(e.errors()) from e
     expenses[expenses.index(old_expense)] = updated
     return updated
 

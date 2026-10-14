@@ -1,8 +1,8 @@
 import datetime
 from decimal import Decimal
-from typing import Literal, Annotated
+from typing import Annotated, Literal
 
-from pydantic import Field, BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 Currency = Literal["GBP", "MYR"]
 Category = Literal[
@@ -35,3 +35,13 @@ class ExpenseCreate(BaseModel):
 
 class ExpenseRead(ExpenseCreate):
     id: int
+
+
+class ExpenseUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    amount: Amount | None = None
+    currency: Currency | None = None
+    date: datetime.date | None = None
+    merchant: Merchant | None = None
+    category: Category | None = None
+    note: str | None = None
