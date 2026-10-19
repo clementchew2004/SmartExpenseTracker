@@ -1,6 +1,7 @@
+import datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.exceptions import RequestValidationError
 from pydantic import ValidationError
 from sqlalchemy import select
@@ -8,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.models import Expense
-from app.schemas import ExpenseCreate, ExpenseRead, ExpenseUpdate
+from app.schemas import Category, ExpenseCreate, ExpenseRead, ExpenseUpdate
 
 router = APIRouter(prefix="/expenses", tags=["expenses"])
 
@@ -23,8 +24,30 @@ def find_expense(db: Session, expense_id: int) -> Expense:
 
 
 @router.get("")
-def list_expenses(db: DbSession) -> list[ExpenseRead]:
-    stmt = select(Expense).order_by(Expense.date.desc(), Expense.id.desc())
+def list_expenses(
+    db: DbSession,
+    date_from: Annotated[datetime.date | None, Query(alias="from")] = None,
+    date_to: Annotated[datetime.date | None, Query(alias="to")] = None,
+    category: Category | None = None,
+    limit: Annotated[int, Query(ge=1, le=200)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -> list[ExpenseRead]:
+    if date_from and date_to and date_from > date_to:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="'from' must be on or before 'to'",
+        )
+
+    stmt = select(Expense)
+    if date_from is not None:
+        stmt = stmt.where(Expense.date >= date_from)
+    if date_to is not None:
+        stmt = stmt.where(Expense.date <= date_to)
+    if category is not None:
+        stmt = stmt.where(Expense.category == category)
+
+    stmt = stmt.order_by(Expense.date.desc(), Expense.id.desc())
+    stmt = stmt.limit(limit).offset(offset)
     return db.scalars(stmt).all()
 
 
