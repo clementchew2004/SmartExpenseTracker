@@ -15,3 +15,6 @@ dist/
 .DS_Store
 .vscode/
 .idea/
+
+# learning notes (Vibe Wise)
+.vibe-wise/

@@ -34,6 +34,7 @@ class ExpenseCreate(BaseModel):
 
 
 class ExpenseRead(ExpenseCreate):
+    model_config = ConfigDict(from_attributes=True)
     id: int
 
 
