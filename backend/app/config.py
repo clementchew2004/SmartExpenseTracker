@@ -9,6 +9,7 @@ class Settings(BaseSettings):
 
     DATABASE_URL: str
     OPENAI_API_KEY: SecretStr
+    OPENAI_MODEL: str = "gpt-4o-mini"
 
 
 @lru_cache
