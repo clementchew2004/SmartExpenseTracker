@@ -48,6 +48,17 @@ class ExpenseUpdate(BaseModel):
     note: str | None = None
 
 
+class ParsedExpense(BaseModel):
+    """What the LLM extracted from a sentence. Never saved until the user confirms."""
+
+    amount: Amount | None  # None = the text didn't mention an amount
+    currency: Currency
+    date: datetime.date
+    merchant: Merchant
+    category: Category
+    note: str | None = None
+
+
 class MonthlyStats(BaseModel):
     month: str
     totals: dict[Currency, dict[Category, Decimal]]
