@@ -46,3 +46,8 @@ class ExpenseUpdate(BaseModel):
     merchant: Merchant | None = None
     category: Category | None = None
     note: str | None = None
+
+
+class MonthlyStats(BaseModel):
+    month: str
+    totals: dict[Currency, dict[Category, Decimal]]
