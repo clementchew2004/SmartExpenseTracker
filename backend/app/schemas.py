@@ -48,6 +48,12 @@ class ExpenseUpdate(BaseModel):
     note: str | None = None
 
 
+class ParseTextRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    text: str = Field(min_length=1, max_length=500)
+
+
 class ParsedExpense(BaseModel):
     """What the LLM extracted from a sentence. Never saved until the user confirms."""
 
