@@ -276,3 +276,4 @@ npm run dev
 _Add a dated line when finishing a phase, plus anything learned that was surprising._
 
 - 2026-10-11 — Phase 0 done. OrbStack only puts `docker` on PATH via ~/.zprofile, so shells opened before first launch need `source ~/.zprofile`. Pydantic converts as well as validates ("4.50" → Decimal).
+- 2026-10-22 — Phase 1 done (27 tests passing). `finally` doesn't catch errors, it always runs — that's what guarantees the session closes even on a 404. `ExpenseUpdate` allowing `null` doesn't mean the DB does: validate the merged result or a NOT NULL column turns into a 500. SQLite has no real decimal type, so tests run on a separate Postgres DB (`expenses_test`), swapped in with `app.dependency_overrides[get_db]`.
