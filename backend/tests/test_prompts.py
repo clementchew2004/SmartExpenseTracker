@@ -31,6 +31,14 @@ def test_prompt_mentions_json():
     assert "JSON" in build_parse_prompt(TODAY, "GBP")
 
 
+def test_prompt_states_the_failure_mode_rules():
+    prompt = build_parse_prompt(TODAY, "GBP")
+
+    assert "one entry for each expense" in prompt
+    assert "return an empty list" in prompt
+    assert "keep the minus sign" in prompt
+
+
 def test_prompt_has_no_unfilled_placeholders():
     prompt = build_parse_prompt(TODAY, "GBP")
 

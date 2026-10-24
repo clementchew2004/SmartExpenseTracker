@@ -7,7 +7,7 @@ from app.main import app
 
 # These tests never call the real OpenAI API: get_llm_client is overridden.
 
-GOOD = {
+TEA = {
     "amount": "4.50",
     "currency": "GBP",
     "date": "2026-10-21",
@@ -15,6 +15,11 @@ GOOD = {
     "category": "Food",
     "note": None,
 }
+BUS = TEA | {"amount": "3.00", "merchant": "Bus", "category": "Transport"}
+
+
+def reply(*expenses) -> str:
+    return json.dumps({"expenses": list(expenses)})
 
 
 class FakeLLM:
@@ -43,34 +48,45 @@ def use_llm(client):
     app.dependency_overrides.pop(get_llm_client, None)
 
 
-def test_returns_the_parsed_expense(client, use_llm):
-    use_llm(json.dumps(GOOD))
+def test_returns_the_parsed_expenses(client, use_llm):
+    use_llm(reply(TEA, BUS))
 
-    response = client.post("/parse/text", json={"text": "4.50 bubble tea yesterday"})
+    response = client.post(
+        "/parse/text", json={"text": "4.50 bubble tea and 3 for the bus"}
+    )
 
     assert response.status_code == 200
-    assert response.json() == GOOD
+    assert response.json() == {"expenses": [TEA, BUS]}
 
 
 def test_does_not_save_anything(client, use_llm):
-    use_llm(json.dumps(GOOD))
+    use_llm(reply(TEA))
 
     client.post("/parse/text", json={"text": "4.50 bubble tea yesterday"})
 
     assert client.get("/expenses").json() == []
 
 
-def test_missing_amount_returns_422(client, use_llm):
-    use_llm(json.dumps(GOOD | {"amount": None}))
+@pytest.mark.parametrize(
+    ("llm_reply", "message"),
+    [
+        (reply(), "doesn't look like an expense"),
+        (reply(TEA | {"amount": None}), "include how much you spent"),
+        (reply(TEA | {"amount": "-5.00"}), "amounts must be more than 0"),
+        (reply(*[TEA] * 11), "at most 10"),
+    ],
+)
+def test_user_input_problems_return_422(client, use_llm, llm_reply, message):
+    use_llm(llm_reply)
 
-    response = client.post("/parse/text", json={"text": "bubble tea yesterday"})
+    response = client.post("/parse/text", json={"text": "something"})
 
     assert response.status_code == 422
-    assert "include how much you spent" in response.json()["detail"]
+    assert message in response.json()["detail"]
 
 
 def test_unusable_model_reply_returns_502(client, use_llm):
-    bad = json.dumps(GOOD | {"category": "Drinks"})
+    bad = reply(TEA | {"category": "Drinks"})
     use_llm(bad, bad)
 
     response = client.post("/parse/text", json={"text": "4.50 bubble tea"})

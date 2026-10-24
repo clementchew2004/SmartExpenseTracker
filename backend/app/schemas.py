@@ -57,12 +57,18 @@ class ParseTextRequest(BaseModel):
 class ParsedExpense(BaseModel):
     """What the LLM extracted from a sentence. Never saved until the user confirms."""
 
-    amount: Amount | None  # None = the text didn't mention an amount
+    # Any sign, and None if not mentioned: code rejects those afterwards
+    # (only the user can fix them, so they must not trigger a model retry).
+    amount: Annotated[Decimal, Field(max_digits=12, decimal_places=2)] | None
     currency: Currency
     date: datetime.date
     merchant: Merchant
     category: Category
     note: str | None = None
+
+
+class ParseResult(BaseModel):
+    expenses: list[ParsedExpense]
 
 
 class MonthlyStats(BaseModel):
