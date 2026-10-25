@@ -30,6 +30,14 @@ export function QuickAdd({ onSaved }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   const savedThisRound = useRef(false)
 
+  // Most parses take 1-2s; if one is still going after 4s, say so instead of looking stuck.
+  const [slow, setSlow] = useState(false)
+  useEffect(() => {
+    if (!parse.isPending) return
+    const timer = setTimeout(() => setSlow(true), 4000)
+    return () => clearTimeout(timer)
+  }, [parse.isPending])
+
   // Hide the "Saved…" / "Discarded… Undo" bar after a few seconds.
   useEffect(() => {
     if (!notice) return
@@ -49,6 +57,7 @@ export function QuickAdd({ onSaved }: Props) {
     event.preventDefault()
     if (!text.trim() || parse.isPending) return
     setNotice(null)
+    setSlow(false)
     savedThisRound.current = false
     parse.mutate(text, {
       onSuccess: (result) =>
@@ -131,7 +140,11 @@ export function QuickAdd({ onSaved }: Props) {
   }
 
   return (
-    <section className="quick-add" aria-label="Add an expense">
+    <section className="quick-add" aria-label="Add an expense" aria-busy={parse.isPending}>
+      {/* Screen readers hear the wait start, and hear if it is taking a while. */}
+      <p className="visually-hidden" role="status">
+        {parse.isPending ? (slow ? 'Still reading your expense' : 'Reading your expense') : ''}
+      </p>
       <form onSubmit={handleSubmit}>
         <label htmlFor="expense-text" className="visually-hidden">
           Describe what you spent
@@ -157,7 +170,19 @@ export function QuickAdd({ onSaved }: Props) {
             {parse.error.message}
           </p>
         )}
+        {parse.isPending && slow && (
+          <p className="muted waiting-note">Still working - the AI is slower than usual.</p>
+        )}
       </form>
+
+      {/* A placeholder card where the real ones will appear. */}
+      {parse.isPending && (
+        <div className="card skeleton" aria-hidden="true">
+          <span className="skeleton-line skeleton-amount" />
+          <span className="skeleton-line" />
+          <span className="skeleton-line skeleton-short" />
+        </div>
+      )}
 
       {notice && (
         <div className="notice" role="status">

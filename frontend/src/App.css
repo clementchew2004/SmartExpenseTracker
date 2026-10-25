@@ -77,6 +77,52 @@ select {
   font-size: 1.0625rem; /* 17px+ stops iOS zooming into the field */
 }
 
+/* Fixed width so "Parse" -> "Reading…" doesn't squeeze the input. */
+.input-row button {
+  flex: 0 0 116px;
+  white-space: nowrap;
+}
+
+.waiting-note {
+  margin: 8px 0 0;
+  font-size: 0.9375rem;
+}
+
+/* Placeholder card while the AI reads the sentence. */
+.skeleton {
+  gap: 14px;
+}
+
+.skeleton-line {
+  display: block;
+  height: 14px;
+  width: 70%;
+  border-radius: 6px;
+  background: var(--border);
+  animation: skeleton-pulse 1.2s ease-in-out infinite;
+}
+
+.skeleton-amount {
+  height: 28px;
+  width: 40%;
+}
+
+.skeleton-short {
+  width: 45%;
+}
+
+@keyframes skeleton-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-line {
+    animation: none;
+  }
+}
+
 .error {
   color: var(--error);
   margin: 8px 0 0;

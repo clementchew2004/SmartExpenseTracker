@@ -42,6 +42,7 @@ class LLMClient:
 
         JSON mode requires the word "JSON" to appear in the prompt.
         """
+        started = time.perf_counter()  # includes any retries and backoff waits
         for attempt in range(MAX_RETRIES + 1):
             try:
                 response = self.sdk.chat.completions.create(
@@ -76,10 +77,13 @@ class LLMClient:
             usage = response.usage
             if usage is not None:
                 logger.info(
-                    "LLM call model=%s input_tokens=%s output_tokens=%s",
+                    "LLM call model=%s input_tokens=%s output_tokens=%s "
+                    "attempts=%s duration_ms=%d",
                     self.model,
                     usage.prompt_tokens,
                     usage.completion_tokens,
+                    attempt + 1,
+                    (time.perf_counter() - started) * 1000,
                 )
             return response.choices[0].message.content or ""
 

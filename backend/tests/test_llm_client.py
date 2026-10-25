@@ -120,6 +120,18 @@ def test_logs_token_usage(caplog):
         client.complete("Reply in JSON.", "hi")
 
     assert "input_tokens=12 output_tokens=5" in caplog.text
+    assert "attempts=1 duration_ms=" in caplog.text
+
+
+def test_logs_how_many_attempts_a_call_needed(caplog):
+    client, _, _ = make_client(
+        [status_error(openai.RateLimitError, 429), ok_response()]
+    )
+
+    with caplog.at_level(logging.INFO, logger="app.llm.client"):
+        client.complete("Reply in JSON.", "hi")
+
+    assert "attempts=2" in caplog.text
 
 
 def test_real_client_has_sdk_retries_turned_off():
