@@ -184,7 +184,7 @@ npm create vite@latest . -- --template react-ts
 npm install @tanstack/react-query recharts
 ```
 
-- [ ] CORS configured in FastAPI for the Vite dev server `[I write]`
+- [x] CORS configured in FastAPI for the Vite dev server `[I write]`
 - [ ] **Quick-add screen** (the main screen): text box → "Parse" → editable confirmation card → "Save" `[I write]`
 - [ ] Expense list with filter by month and category; tap to edit or delete
 - [ ] Monthly dashboard: category bar chart, GBP and MYR shown separately

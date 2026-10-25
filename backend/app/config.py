@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     OPENAI_API_KEY: SecretStr
     OPENAI_MODEL: str = "gpt-4o-mini"
+    # Websites whose JavaScript may call this API from a browser.
+    CORS_ORIGINS: list[str] = ["http://localhost:5173"]
 
 
 @lru_cache
