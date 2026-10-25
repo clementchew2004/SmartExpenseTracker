@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.schemas import MonthlyStats
-from app.services.stats import monthly_totals
+from app.services.stats import monthly_currency_totals, monthly_totals
 
 router = APIRouter(prefix="/stats", tags=["stats"])
 
@@ -28,4 +28,8 @@ def monthly_stats(month: str, db: DbSession) -> MonthlyStats:
     else:
         end = datetime.date(start.year, start.month + 1, 1)
 
-    return MonthlyStats(month=month, totals=monthly_totals(db, start, end))
+    return MonthlyStats(
+        month=month,
+        totals=monthly_totals(db, start, end),
+        currency_totals=monthly_currency_totals(db, start, end),
+    )

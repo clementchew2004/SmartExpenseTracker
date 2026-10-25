@@ -179,6 +179,10 @@ export interface components {
                     [key: string]: string;
                 };
             };
+            /** Currency Totals */
+            currency_totals: {
+                [key: string]: string;
+            };
         };
         /** ParseResult */
         ParseResult: {

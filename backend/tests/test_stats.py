@@ -12,6 +12,7 @@ def test_monthly_totals_sum_per_category(client, make_expense):
     assert response.json() == {
         "month": "2026-10",
         "totals": {"GBP": {"Food": "7.70", "Transport": "2.80"}},
+        "currency_totals": {"GBP": "10.50"},
     }
 
 
@@ -25,6 +26,8 @@ def test_monthly_totals_keep_currencies_separate(client, make_expense):
         "GBP": {"Food": "4.50"},
         "MYR": {"Food": "12.00"},
     }
+    # One total per currency, never added together.
+    assert response.json()["currency_totals"] == {"GBP": "4.50", "MYR": "12.00"}
 
 
 def test_monthly_totals_only_include_that_month(client, make_expense):
@@ -51,7 +54,7 @@ def test_monthly_totals_empty_month(client):
     response = client.get("/stats/monthly", params={"month": "2026-08"})
 
     assert response.status_code == 200
-    assert response.json() == {"month": "2026-08", "totals": {}}
+    assert response.json() == {"month": "2026-08", "totals": {}, "currency_totals": {}}
 
 
 @pytest.mark.parametrize("bad_month", ["2026-13", "october", "2026/10"])

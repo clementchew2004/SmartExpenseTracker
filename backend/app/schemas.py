@@ -77,3 +77,4 @@ class ParseResult(BaseModel):
 class MonthlyStats(BaseModel):
     month: str
     totals: dict[Currency, dict[Category, Decimal]]
+    currency_totals: dict[Currency, Decimal]

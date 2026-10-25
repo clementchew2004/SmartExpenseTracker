@@ -18,16 +18,25 @@ const CATEGORY_COLOURS: Record<Category, string> = {
   Other: '#adb5bd',
 }
 
-function currentMonth(): string {
-  const now = new Date()
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+function monthKey(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+}
+
+const MONTH_LABEL = new Intl.DateTimeFormat('en-GB', { month: 'long', year: 'numeric' })
+
+type Props = {
+  currency: Currency
+  onCurrencyChange: (currency: Currency) => void
 }
 
 /** This month's spending by category, one currency at a time (never mixed). */
-export function MonthlyChart() {
-  const [currency, setCurrency] = useState<Currency>('GBP')
-  const month = currentMonth()
+export function MonthlyChart({ currency, onCurrencyChange }: Props) {
+  // Read the clock once when the chart first appears, not on every render.
+  const [now] = useState(() => new Date())
+  const month = monthKey(now)
   const stats = useMonthlyStats(month)
+  // The total comes from the API (SQL SUM), never added up here.
+  const total = stats.data?.currency_totals[currency]
 
   const totals = stats.data?.totals[currency] ?? {}
   const slices = Object.entries(totals).map(([category, amount]) => ({
@@ -39,7 +48,7 @@ export function MonthlyChart() {
   return (
     <section className="chart" aria-label="This month's spending">
       <div className="chart-header">
-        <h2>This month</h2>
+        <h2>{MONTH_LABEL.format(now)}</h2>
         <div className="toggle" role="group" aria-label="Currency">
           {CURRENCIES.map((c) => (
             <button
@@ -47,7 +56,7 @@ export function MonthlyChart() {
               type="button"
               className={c === currency ? 'active' : ''}
               aria-pressed={c === currency}
-              onClick={() => setCurrency(c)}
+              onClick={() => onCurrencyChange(c)}
             >
               {c}
             </button>
@@ -68,6 +77,12 @@ export function MonthlyChart() {
       {slices.length > 0 && (
         <>
           <div className="chart-canvas">
+            {total !== undefined && (
+              <p className="donut-total">
+                <span className="donut-total-label">Total</span>
+                {formatMoney(total, currency)}
+              </p>
+            )}
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie data={slices} dataKey="value" nameKey="category" innerRadius="55%" isAnimationActive={false}>
