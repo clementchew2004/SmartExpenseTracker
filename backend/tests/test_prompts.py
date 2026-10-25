@@ -1,10 +1,24 @@
 import datetime
 from typing import get_args
 
-from app.llm.prompts import build_parse_prompt
+from app.llm.prompts import CATEGORY_HINTS, build_parse_prompt
 from app.schemas import Category
 
 TODAY = datetime.date(2026, 10, 22)
+
+
+def test_prompt_asks_for_the_date_words():
+    assert '"date_text": the words in the note that say when' in build_parse_prompt(
+        TODAY, "GBP"
+    )
+
+
+def test_every_category_has_a_hint():
+    assert set(CATEGORY_HINTS) == set(get_args(Category))
+
+
+def test_prompt_says_a_bare_number_is_the_amount():
+    assert 'A bare number like "3"' in build_parse_prompt(TODAY, "GBP")
 
 
 def test_prompt_includes_today_and_weekday():

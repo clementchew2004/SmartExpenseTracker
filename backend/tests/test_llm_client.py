@@ -58,6 +58,7 @@ def test_returns_reply_on_first_try():
     sent = sdk.calls[0]
     assert sent["model"] == "test-model"
     assert sent["response_format"] == {"type": "json_object"}
+    assert sent["temperature"] == 0
     assert sent["messages"][1] == {"role": "user", "content": "4.50 bubble tea"}
 
 

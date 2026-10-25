@@ -59,6 +59,14 @@ def test_returns_the_parsed_expenses(client, use_llm):
     assert response.json() == {"expenses": [TEA, BUS]}
 
 
+def test_date_text_is_not_sent_to_the_client(client, use_llm):
+    use_llm(reply(TEA | {"date_text": "yesterday"}))
+
+    response = client.post("/parse/text", json={"text": "4.50 bubble tea yesterday"})
+
+    assert "date_text" not in response.json()["expenses"][0]
+
+
 def test_does_not_save_anything(client, use_llm):
     use_llm(reply(TEA))
 

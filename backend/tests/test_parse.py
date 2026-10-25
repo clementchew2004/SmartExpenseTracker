@@ -77,6 +77,23 @@ def test_accepts_amount_sent_as_a_number():
     assert tea.amount == Decimal("4.5")
 
 
+def test_code_works_out_weekday_dates_over_the_model():
+    # TODAY is Thursday 22 Oct; "last friday" is Fri 16 Oct. The model said 21st.
+    llm = FakeLLM([reply(TEA | {"date": "2026-10-21", "date_text": "last friday"})])
+
+    [tea] = parse_expense_text("4.50 bubble tea last friday", llm, TODAY)
+
+    assert tea.date == datetime.date(2026, 10, 16)
+
+
+def test_model_date_is_kept_when_code_does_not_recognise_the_words():
+    llm = FakeLLM([reply(TEA | {"date": "2026-10-01", "date_text": "on the 1st"})])
+
+    [tea] = parse_expense_text("4.50 bubble tea on the 1st", llm, TODAY)
+
+    assert tea.date == datetime.date(2026, 10, 1)
+
+
 def test_default_currency_reaches_the_prompt():
     llm = FakeLLM([reply(TEA | {"currency": "MYR"})])
 

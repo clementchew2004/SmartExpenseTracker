@@ -3,6 +3,7 @@ import datetime
 from pydantic import ValidationError
 
 from app.llm.client import LLMClient
+from app.llm.dates import resolve_weekday
 from app.llm.prompts import DEFAULT_CURRENCY, build_parse_prompt
 from app.schemas import Currency, ParsedExpense, ParseResult
 
@@ -59,6 +60,12 @@ def parse_expense_text(
             raise ExpenseParseError(
                 "Couldn't understand that expense - try rephrasing it"
             ) from second_error
+
+    # Weekday dates are arithmetic, so code works them out, not the model.
+    for expense in result.expenses:
+        resolved = resolve_weekday(expense.date_text, today)
+        if resolved is not None:
+            expense.date = resolved
 
     # The model did its job; now check what it found in the user's text.
     check_user_input(result.expenses)

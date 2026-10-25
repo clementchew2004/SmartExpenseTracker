@@ -62,6 +62,9 @@ class ParsedExpense(BaseModel):
     amount: Annotated[Decimal, Field(max_digits=12, decimal_places=2)] | None
     currency: Currency
     date: datetime.date
+    # The model's copy of the date words, e.g. "last friday". Used to work out
+    # weekday dates in code; never sent back to the client.
+    date_text: str | None = Field(default=None, exclude=True)
     merchant: Merchant
     category: Category
     note: str | None = None

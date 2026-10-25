@@ -51,6 +51,7 @@ class LLMClient:
                         {"role": "user", "content": user_message},
                     ],
                     response_format={"type": "json_object"},
+                    temperature=0,  # consistent answers: extraction, not creativity
                 )
             except RETRYABLE_ERRORS as e:
                 if attempt == MAX_RETRIES:
