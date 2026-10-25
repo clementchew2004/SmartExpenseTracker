@@ -185,10 +185,10 @@ npm install @tanstack/react-query recharts
 ```
 
 - [x] CORS configured in FastAPI for the Vite dev server `[I write]`
-- [ ] **Quick-add screen** (the main screen): text box → "Parse" → editable confirmation card → "Save" `[I write]`
+- [x] **Quick-add screen** (the main screen): text box → "Parse" → editable confirmation card → "Save" `[I write]`
 - [ ] Expense list with filter by month and category; tap to edit or delete
 - [ ] Monthly dashboard: category bar chart, GBP and MYR shown separately
-- [ ] Generate TS types from FastAPI's `/openapi.json` (`npx openapi-typescript http://localhost:8000/openapi.json -o src/api/types.ts`)
+- [x] Generate TS types from FastAPI's `/openapi.json` (`npx openapi-typescript http://localhost:8000/openapi.json -o src/api/types.ts`)
 - [ ] PWA manifest and icons so it installs to my phone's home screen `[Claude writes]`
 
 **Done when:** I can log an expense from my phone browser in under 10 seconds.
