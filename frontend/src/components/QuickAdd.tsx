@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 
 import type { ExpenseCreate } from '../api/client'
@@ -37,12 +37,18 @@ export function QuickAdd() {
     })
   }
 
+  // Every card dealt with: clear the box for the next expense.
+  const hadDrafts = useRef(false)
+  useEffect(() => {
+    if (hadDrafts.current && drafts.length === 0) setText('')
+    hadDrafts.current = drafts.length > 0
+  }, [drafts])
+
   function remove(id: string, saved: boolean) {
-    const remaining = drafts.filter((d) => d.id !== id)
-    setDrafts(remaining)
+    // Functional update: start from the latest list, not the one captured at render,
+    // so a Save finishing while another card is discarded can't bring it back.
+    setDrafts((current) => current.filter((d) => d.id !== id))
     if (saved) setSavedMessage(true)
-    // Every card dealt with: clear the box for the next expense.
-    if (remaining.length === 0) setText('')
   }
 
   return (

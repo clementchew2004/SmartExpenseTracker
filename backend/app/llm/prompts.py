@@ -33,11 +33,15 @@ return an empty list.
 
 Each expense has exactly these fields:
 - "amount": the amount as a string with 2 decimal places, e.g. "4.50". \
-A bare number like "3" or "15" is the amount, even without a currency sign \
-or decimals. If no amount is mentioned, use null. Never guess an amount. \
-For refunds or negative amounts, keep the minus sign, e.g. "-5.00".
+Every number in the note is an amount of money, even without a currency \
+sign or decimals: "2 for the tram" means 2.00, and "8 roti canai" means 8.00 \
+spent on roti canai. If no amount is mentioned, use null, not 0. Never guess an \
+amount. For refunds or negative amounts, keep the minus sign, e.g. "-5.00".
 - "currency": "GBP" or "MYR". Use "MYR" for RM, ringgit or MYR, and "GBP" \
-for £, pounds or quid. If no currency is mentioned, use "{default_currency}".
+for £, pounds or quid. If an expense has no currency of its own, use the \
+currency of the other expenses in the same note. If no expense in the note \
+mentions a currency, use "{default_currency}", even if the items or shops \
+sound like they are from a particular country.
 - "date": the date as YYYY-MM-DD.
 - "date_text": the words in the note that say when, copied exactly, e.g. \
 "last friday" or "yesterday". Use null if the note doesn't say when.

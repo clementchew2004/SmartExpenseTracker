@@ -15,6 +15,7 @@ export function ExpenseCard({ expense, onSaved, onDiscard }: Props) {
   const [draft, setDraft] = useState<ExpenseCreate>(expense)
   const [editing, setEditing] = useState(false)
   const save = useCreateExpense()
+  const otherCurrency: Currency = draft.currency === 'GBP' ? 'MYR' : 'GBP'
 
   function update<K extends keyof ExpenseCreate>(field: K, value: ExpenseCreate[K]) {
     setDraft((current) => ({ ...current, [field]: value }))
@@ -75,7 +76,18 @@ export function ExpenseCard({ expense, onSaved, onDiscard }: Props) {
         <dl className="card-summary">
           <div className="card-amount">
             <dt>Amount</dt>
-            <dd>{formatMoney(String(draft.amount), draft.currency)}</dd>
+            <dd>
+              {formatMoney(String(draft.amount), draft.currency)}
+              {/* Currency is the field most likely to be wrong, so fixing it is one tap. */}
+              <button
+                type="button"
+                className="currency-chip"
+                aria-label={`Currency ${draft.currency}. Switch to ${otherCurrency}`}
+                onClick={() => update('currency', otherCurrency)}
+              >
+                {draft.currency} ⇄
+              </button>
+            </dd>
           </div>
           <div>
             <dt>Merchant</dt>

@@ -18,7 +18,9 @@ def test_every_category_has_a_hint():
 
 
 def test_prompt_says_a_bare_number_is_the_amount():
-    assert 'A bare number like "3"' in build_parse_prompt(TODAY, "GBP")
+    assert "Every number in the note is an amount of money" in build_parse_prompt(
+        TODAY, "GBP"
+    )
 
 
 def test_prompt_includes_today_and_weekday():
@@ -37,7 +39,13 @@ def test_prompt_lists_every_category():
 def test_prompt_uses_the_default_currency_passed_in():
     prompt = build_parse_prompt(TODAY, "MYR")
 
-    assert 'If no currency is mentioned, use "MYR"' in prompt
+    assert 'If no expense in the note mentions a currency, use "MYR"' in prompt
+
+
+def test_prompt_says_a_bare_amount_takes_the_notes_currency():
+    prompt = build_parse_prompt(TODAY, "GBP")
+
+    assert "use the currency of the other expenses in the same note" in prompt
 
 
 def test_prompt_mentions_json():

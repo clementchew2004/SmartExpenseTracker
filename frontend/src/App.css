@@ -127,9 +127,24 @@ select {
 }
 
 .card-amount dd {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   font-size: 1.75rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+}
+
+/* One-tap currency switch next to the amount. */
+.currency-chip {
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--muted);
+  font-size: 0.9375rem;
+  font-weight: 600;
 }
 
 .card-fields {

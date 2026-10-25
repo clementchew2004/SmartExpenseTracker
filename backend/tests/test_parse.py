@@ -99,7 +99,7 @@ def test_default_currency_reaches_the_prompt():
 
     parse_expense_text("12 nasi lemak", llm, TODAY, default_currency="MYR")
 
-    assert 'If no currency is mentioned, use "MYR"' in llm.calls[0]["system"]
+    assert 'mentions a currency, use "MYR"' in llm.calls[0]["system"]
 
 
 # --- Model problems: retry once with the error, then give up ---
