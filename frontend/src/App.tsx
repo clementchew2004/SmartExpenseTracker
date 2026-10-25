@@ -2,6 +2,7 @@ import { useState } from 'react'
 
 import './App.css'
 import type { Currency } from './api/client'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { MonthlyChart } from './components/MonthlyChart'
 import { QuickAdd } from './components/QuickAdd'
 
@@ -12,8 +13,13 @@ function App() {
   return (
     <main className="app">
       <h1>Add expense</h1>
-      <QuickAdd onSaved={setChartCurrency} />
-      <MonthlyChart currency={chartCurrency} onCurrencyChange={setChartCurrency} />
+      {/* Separate boundaries: if one part crashes, the other keeps working. */}
+      <ErrorBoundary name="quick-add form">
+        <QuickAdd onSaved={setChartCurrency} />
+      </ErrorBoundary>
+      <ErrorBoundary name="monthly chart">
+        <MonthlyChart currency={chartCurrency} onCurrencyChange={setChartCurrency} />
+      </ErrorBoundary>
     </main>
   )
 }

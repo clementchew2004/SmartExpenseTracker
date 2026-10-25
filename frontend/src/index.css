@@ -2,12 +2,24 @@
   --bg: #ffffff;
   --surface: #f5f5f4;
   --text: #1c1917;
-  --muted: #78716c;
-  --border: #e7e5e4;
+  --muted: #716b66; /* 4.5:1+ on both bg and surface */
+  --border: #e7e5e4; /* decorative (card edges) */
+  --control-border: #8f8984; /* inputs/toggles: 3:1+ non-text contrast */
   --accent: #0f766e;
   --accent-text: #ffffff;
   --error: #b91c1c;
   --success: #15803d;
+
+  /* Chart categories: dataviz reference palette, validated order (CVD-safe). */
+  --cat-1: #2a78d6;
+  --cat-2: #eb6834;
+  --cat-3: #1baf7a;
+  --cat-4: #eda100;
+  --cat-5: #e87ba4;
+  --cat-6: #008300;
+  --cat-7: #6250d6;
+  --cat-8: #e34948;
+  --cat-neutral: #b5b4ad;
 
   color-scheme: light dark;
   font: 16px/1.5 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -23,10 +35,21 @@
     --text: #f5f5f4;
     --muted: #a8a29e;
     --border: #44403c;
+    --control-border: #78716c;
     --accent: #2dd4bf;
     --accent-text: #042f2e;
     --error: #f87171;
     --success: #4ade80;
+
+    --cat-1: #3987e5;
+    --cat-2: #d95926;
+    --cat-3: #199e70;
+    --cat-4: #c98500;
+    --cat-5: #d55181;
+    --cat-6: #008300;
+    --cat-7: #9085e9;
+    --cat-8: #e66767;
+    --cat-neutral: #5f5e59;
   }
 }
 
@@ -43,4 +66,15 @@ input,
 select {
   font: inherit;
   color: inherit;
+}
+
+/* A clear ring for keyboard users (mouse/touch taps don't show it). */
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+::placeholder {
+  color: var(--muted);
+  opacity: 1; /* Firefox fades placeholders by default */
 }

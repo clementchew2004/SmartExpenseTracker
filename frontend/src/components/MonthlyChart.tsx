@@ -5,18 +5,24 @@ import type { Category, Currency } from '../api/client'
 import { useMonthlyStats } from '../api/hooks'
 import { CURRENCIES, formatMoney } from '../api/options'
 
-const CATEGORY_COLOURS: Record<Category, string> = {
-  Food: '#e76f51',
-  Groceries: '#2a9d8f',
-  Transport: '#457b9d',
-  Shopping: '#e9c46a',
-  Subscriptions: '#9b5de5',
-  Entertainment: '#f15bb5',
-  Bills: '#6c757d',
-  Health: '#06d6a0',
-  Travel: '#118ab2',
-  Other: '#adb5bd',
+// Colours live in index.css (--cat-1 ... --cat-8, --cat-neutral) with separate light and
+// dark values, validated for colour-blind separation by the dataviz palette script.
+// Only 8 colours pass, so Bills and Other share the neutral grey (the legend names them).
+// The ORDER matters: neighbouring slots were validated as neighbours, so slices are
+// drawn in this order, not in the API's alphabetical order.
+const CATEGORY_SLOT: Record<Category, string> = {
+  Transport: 'var(--cat-1)',
+  Food: 'var(--cat-2)',
+  Groceries: 'var(--cat-3)',
+  Travel: 'var(--cat-4)',
+  Shopping: 'var(--cat-5)',
+  Health: 'var(--cat-6)',
+  Subscriptions: 'var(--cat-7)',
+  Entertainment: 'var(--cat-8)',
+  Bills: 'var(--cat-neutral)',
+  Other: 'var(--cat-neutral)',
 }
+const DRAW_ORDER = Object.keys(CATEGORY_SLOT) as Category[]
 
 function monthKey(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
@@ -39,10 +45,10 @@ export function MonthlyChart({ currency, onCurrencyChange }: Props) {
   const total = stats.data?.currency_totals[currency]
 
   const totals = stats.data?.totals[currency] ?? {}
-  const slices = Object.entries(totals).map(([category, amount]) => ({
-    category: category as Category,
-    amount, // the exact string from the API, used for display
-    value: Number(amount), // only for drawing slice sizes, never for maths
+  const slices = DRAW_ORDER.filter((category) => category in totals).map((category) => ({
+    category,
+    amount: totals[category]!, // the exact string from the API, used for display
+    value: Number(totals[category]), // only for drawing slice sizes, never for maths
   }))
 
   return (
@@ -76,7 +82,14 @@ export function MonthlyChart({ currency, onCurrencyChange }: Props) {
 
       {slices.length > 0 && (
         <>
-          <div className="chart-canvas">
+          {/* The legend below is the text version; this label summarises the picture. */}
+          <div
+            className="chart-canvas"
+            role="img"
+            aria-label={`${currency} spending by category: ${slices
+              .map((slice) => `${slice.category} ${formatMoney(slice.amount, currency)}`)
+              .join(', ')}`}
+          >
             {total !== undefined && (
               <p className="donut-total">
                 <span className="donut-total-label">Total</span>
@@ -84,10 +97,10 @@ export function MonthlyChart({ currency, onCurrencyChange }: Props) {
               </p>
             )}
             <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
+              <PieChart accessibilityLayer={false}>
                 <Pie data={slices} dataKey="value" nameKey="category" innerRadius="55%" isAnimationActive={false}>
                   {slices.map((slice) => (
-                    <Cell key={slice.category} fill={CATEGORY_COLOURS[slice.category]} />
+                    <Cell key={slice.category} style={{ fill: CATEGORY_SLOT[slice.category] }} />
                   ))}
                 </Pie>
                 <Tooltip formatter={(_value, _name, item) => formatMoney(item.payload.amount, currency)} />
@@ -97,7 +110,7 @@ export function MonthlyChart({ currency, onCurrencyChange }: Props) {
           <ul className="legend">
             {slices.map((slice) => (
               <li key={slice.category}>
-                <span className="swatch" style={{ background: CATEGORY_COLOURS[slice.category] }} />
+                <span className="swatch" style={{ background: CATEGORY_SLOT[slice.category] }} />
                 <span>{slice.category}</span>
                 <span className="legend-amount">{formatMoney(slice.amount, currency)}</span>
               </li>

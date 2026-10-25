@@ -47,7 +47,7 @@ button:disabled {
 button.secondary {
   background: transparent;
   color: var(--text);
-  border: 1px solid var(--border);
+  border: 1px solid var(--control-border);
 }
 
 input,
@@ -55,7 +55,7 @@ select {
   min-height: 44px;
   width: 100%;
   padding: 0 12px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--control-border);
   border-radius: 10px;
   background: var(--bg);
 }
@@ -211,7 +211,7 @@ button.link {
   border-radius: 999px;
   background: transparent;
   color: var(--text);
-  border: 1px solid var(--muted);
+  border: 1px solid var(--control-border);
   font-size: 0.9375rem;
   font-weight: 600;
 }
@@ -260,13 +260,13 @@ button.link {
 
 .toggle {
   display: flex;
-  border: 1px solid var(--border);
+  border: 1px solid var(--control-border);
   border-radius: 10px;
   overflow: hidden;
 }
 
 .toggle button {
-  min-height: 36px;
+  min-height: 44px;
   border-radius: 0;
   background: transparent;
   color: var(--text);
@@ -281,6 +281,13 @@ button.link {
 .chart-canvas {
   position: relative;
   height: 220px;
+}
+
+/* A 2px gap in the background colour between slices, so neighbours (and the two
+   grey slices for Bills and Other) stay separate. */
+.chart-canvas .recharts-sector {
+  stroke: var(--bg);
+  stroke-width: 2px;
 }
 
 /* The month's total sits in the donut's hole. */

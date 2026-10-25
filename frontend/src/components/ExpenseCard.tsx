@@ -29,7 +29,10 @@ export function ExpenseCard({
   const otherCurrency: Currency = expense.currency === 'GBP' ? 'MYR' : 'GBP'
 
   return (
-    <article className="card" aria-label={`Expense: ${expense.merchant}`}>
+    <article
+      className="card"
+      aria-label={`Expense: ${expense.merchant}, ${formatMoney(String(expense.amount), expense.currency)}`}
+    >
       {editing ? (
         <div className="card-fields">
           <label>
@@ -114,7 +117,12 @@ export function ExpenseCard({
       )}
 
       <div className="card-actions">
-        <button type="button" className="secondary" onClick={onToggleEdit}>
+        <button
+          type="button"
+          className="secondary"
+          aria-expanded={editing}
+          onClick={onToggleEdit}
+        >
           {editing ? 'Done' : 'Edit'}
         </button>
         <button type="button" className="secondary" onClick={onDiscard}>
