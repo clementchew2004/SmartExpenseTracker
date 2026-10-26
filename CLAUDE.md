@@ -189,7 +189,7 @@ npm install @tanstack/react-query recharts
 - [x] Expense list with filter by month and category; tap to edit or delete
 - [ ] Monthly dashboard: category bar chart, GBP and MYR shown separately
 - [x] Generate TS types from FastAPI's `/openapi.json` (`npx openapi-typescript http://localhost:8000/openapi.json -o src/api/types.ts`)
-- [ ] PWA manifest and icons so it installs to my phone's home screen `[Claude writes]`
+- [x] PWA manifest and icons so it installs to my phone's home screen `[Claude writes]`
 
 **Done when:** I can log an expense from my phone browser in under 10 seconds.
 
