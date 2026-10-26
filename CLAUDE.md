@@ -205,6 +205,23 @@ npm install @tanstack/react-query recharts
 
 **Done when:** I can explain the full chain from request → `OAuth2PasswordBearer` → `get_current_user` → route.
 
+### Phase 4.5 — Budgets and repeating expenses (2–3 days)
+
+**Learn:** per-user settings tables, comparisons computed in SQL, date arithmetic for schedules, running work on a schedule in a web app, keeping a hard rule ("the user confirms before saving") while automating.
+
+My ideas (2026-10-26); design not decided yet:
+
+1. **Monthly budget**: set a budget, and see whether I went over it for the month. `[I write]`
+   - Open question: **one budget per currency** (e.g. £800 and RM 500)? GBP and MYR can never be added together, so a single budget can't cover both.
+   - Open question: see **progress during the month** ("£620 of £800, 12 days left") or only the verdict at the end?
+   - Rule: "over/under" is a comparison, so SQL computes it; the LLM never does.
+2. **Repeating expenses**: when adding an expense, choose to repeat it daily, weekly or monthly (e.g. rent). `[I write]`
+   - Open question: does setting up the repeat count as confirming every future copy (**auto-save**), or should the app **remind me** with a pre-filled card I confirm in one tap? It touches the hard rule "the user confirms before saving".
+   - Open question: **how the server runs scheduled work**: fill in any due repeats when the app opens, or a scheduled job (cron) that runs daily?
+   - Watch out: monthly repeats on the 29th–31st (short months), and editing or stopping a repeat without changing past expenses.
+
+**Done when:** I can see my budget progress per currency, and a monthly repeat (e.g. rent) appears each month in the way I decided above.
+
 ### Phase 5 — LLM integration II: receipts and summaries (3–4 days)
 
 **Learn:** multimodal (vision) input, file uploads in FastAPI, streaming responses, async LLM calls.
