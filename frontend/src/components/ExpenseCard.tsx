@@ -1,5 +1,6 @@
-import type { Category, Currency, ExpenseCreate } from '../api/client'
-import { CATEGORIES, CURRENCIES, formatMoney } from '../api/options'
+import type { Currency, ExpenseCreate } from '../api/client'
+import { formatMoney } from '../api/options'
+import { ExpenseFields } from './ExpenseFields'
 
 type Props = {
   expense: ExpenseCreate
@@ -34,50 +35,7 @@ export function ExpenseCard({
       aria-label={`Expense: ${expense.merchant}, ${formatMoney(String(expense.amount), expense.currency)}`}
     >
       {editing ? (
-        <div className="card-fields">
-          <label>
-            Amount
-            <input
-              inputMode="decimal"
-              value={String(expense.amount)}
-              onChange={(e) => onChange('amount', e.target.value)}
-            />
-          </label>
-          <label>
-            Currency
-            <select
-              value={expense.currency}
-              onChange={(e) => onChange('currency', e.target.value as Currency)}
-            >
-              {CURRENCIES.map((c) => (
-                <option key={c}>{c}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Date
-            <input
-              type="date"
-              value={expense.date}
-              onChange={(e) => onChange('date', e.target.value)}
-            />
-          </label>
-          <label>
-            Merchant
-            <input value={expense.merchant} onChange={(e) => onChange('merchant', e.target.value)} />
-          </label>
-          <label>
-            Category
-            <select
-              value={expense.category}
-              onChange={(e) => onChange('category', e.target.value as Category)}
-            >
-              {CATEGORIES.map((c) => (
-                <option key={c}>{c}</option>
-              ))}
-            </select>
-          </label>
-        </div>
+        <ExpenseFields expense={expense} onChange={onChange} />
       ) : (
         <dl className="card-summary">
           <div className="card-amount">

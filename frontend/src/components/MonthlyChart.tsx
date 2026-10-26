@@ -4,6 +4,7 @@ import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
 import type { Category, Currency } from '../api/client'
 import { useMonthlyStats } from '../api/hooks'
 import { CURRENCIES, formatMoney } from '../api/options'
+import { monthKey, monthLabel } from '../dates'
 
 // Colours live in index.css (--cat-1 ... --cat-8, --cat-neutral) with separate light and
 // dark values, validated for colour-blind separation by the dataviz palette script.
@@ -24,11 +25,6 @@ const CATEGORY_SLOT: Record<Category, string> = {
 }
 const DRAW_ORDER = Object.keys(CATEGORY_SLOT) as Category[]
 
-function monthKey(date: Date): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-}
-
-const MONTH_LABEL = new Intl.DateTimeFormat('en-GB', { month: 'long', year: 'numeric' })
 
 type Props = {
   currency: Currency
@@ -54,7 +50,7 @@ export function MonthlyChart({ currency, onCurrencyChange }: Props) {
   return (
     <section className="chart" aria-label="This month's spending">
       <div className="chart-header">
-        <h2>{MONTH_LABEL.format(now)}</h2>
+        <h2>{monthLabel(month)}</h2>
         <div className="toggle" role="group" aria-label="Currency">
           {CURRENCIES.map((c) => (
             <button

@@ -1,8 +1,9 @@
 /* Phone-first: one column, comfortable tap targets. */
 .app {
+  --tab-bar-height: 64px;
   max-width: 480px;
   margin: 0 auto;
-  padding: 16px;
+  padding: 16px 16px calc(var(--tab-bar-height) + env(safe-area-inset-bottom) + 24px);
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -151,7 +152,7 @@ button.link {
 /* Stays in thumb reach while you scroll through the cards. */
 .save-all {
   position: sticky;
-  bottom: 16px;
+  bottom: calc(var(--tab-bar-height) + env(safe-area-inset-bottom) + 12px);
   width: 100%;
   min-height: 52px;
   font-size: 1.0625rem;
@@ -335,4 +336,222 @@ button.link {
 .legend-amount {
   margin-left: auto;
   font-variant-numeric: tabular-nums;
+}
+
+/* Bottom tab bar */
+.tab-bar {
+  position: fixed;
+  inset: auto 0 0 0;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 6px 16px env(safe-area-inset-bottom);
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  z-index: 10;
+}
+
+.tab-bar a {
+  flex: 1;
+  max-width: 200px;
+  min-height: 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border-radius: 10px;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.tab-bar a[aria-current='page'] {
+  color: var(--accent);
+}
+
+.tab-bar svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+/* Undo / delete-error bar: floats just above the tab bar on every page. */
+.undo-bar {
+  position: fixed;
+  left: 50%;
+  bottom: calc(64px + env(safe-area-inset-bottom) + 12px);
+  transform: translateX(-50%);
+  width: min(448px, calc(100% - 32px));
+  z-index: 11;
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.25);
+  background: var(--surface);
+}
+
+p.undo-bar {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+/* Expense list */
+.expenses {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.month-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.icon-button {
+  flex: 0 0 44px;
+  padding: 0;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.month-label {
+  flex: 1;
+  background: transparent;
+  color: var(--text);
+  padding: 0;
+}
+
+.month-label h1 {
+  margin: 0;
+  text-decoration: underline dotted var(--muted);
+  text-underline-offset: 6px;
+}
+
+/* One scrollable row of category chips. */
+.chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  margin: 0 -16px;
+  padding: 0 16px 4px;
+  scrollbar-width: none;
+}
+
+.chip {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--control-border);
+  font-weight: 500;
+}
+
+.chip[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--accent-text);
+  border-color: var(--accent);
+}
+
+.expense-days {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 50vh; /* room to swipe even when the month is empty */
+}
+
+.day-heading {
+  font-size: 0.875rem;
+  color: var(--muted);
+  font-weight: 600;
+  margin: 0 0 6px;
+}
+
+.expense-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.expense-rows li + li {
+  border-top: 1px solid var(--border);
+}
+
+.expense-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 10px 14px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.row-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.row-merchant {
+  font-weight: 600;
+}
+
+.row-meta {
+  font-size: 0.875rem;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row-amount {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.empty {
+  padding: 24px 0;
+  text-align: center;
+}
+
+/* Edit page */
+.edit-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.edit-header h1 {
+  margin: 0;
+}
+
+.back-link {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.confirm p {
+  margin: 0 0 10px;
+  font-weight: 600;
+}
+
+button.danger {
+  background: var(--error);
+  color: var(--bg);
 }
