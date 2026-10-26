@@ -197,8 +197,8 @@ npm install @tanstack/react-query recharts
 
 **Learn:** password hashing, JWT, OAuth2 password flow in FastAPI, dependency chains, per-user data isolation.
 
-- [ ] `users` table + migration
-- [ ] `POST /auth/register` and `POST /auth/login` (returns JWT) `[I write]`
+- [x] `users` table + migration
+- [x] `POST /auth/register` and `POST /auth/login` (returns JWT) `[I write]`
 - [ ] `get_current_user` dependency that decodes the JWT; every expense route depends on it `[I write]`
 - [ ] All queries filtered by `user_id`; a test proves user A can't read user B's expenses
 - [ ] Frontend login page; token stored in memory + refresh on reload

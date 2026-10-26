@@ -8,7 +8,8 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.config import get_settings
 from app.db import Base, get_db
-from app.main import app  # importing the app also registers the Expense table
+from app.main import app  # importing the app also registers every table
+from app.models import InviteCode
 
 TEST_DB_NAME = "expenses_test"
 
@@ -40,9 +41,23 @@ def engine() -> Iterator[Engine]:
 
 
 @pytest.fixture
+def db_session(engine: Engine) -> Iterator[Session]:
+    """A direct DB session for setting up or inspecting rows in tests."""
+    session = sessionmaker(bind=engine, autoflush=False)()
+    yield session
+    session.close()
+
+
+@pytest.fixture
 def client(engine: Engine) -> Iterator[TestClient]:
     with engine.begin() as conn:
-        conn.execute(text("TRUNCATE expenses RESTART IDENTITY"))
+        # Every table, emptied before each test; CASCADE follows the foreign keys.
+        conn.execute(
+            text(
+                "TRUNCATE expenses, refresh_tokens, invite_codes, users "
+                "RESTART IDENTITY CASCADE"
+            )
+        )
 
     TestSessionLocal = sessionmaker(bind=engine, autoflush=False)
 
@@ -71,5 +86,19 @@ def make_expense(client: TestClient) -> Callable[..., dict]:
         response = client.post("/expenses", json=body)
         assert response.status_code == 201, response.text
         return response.json()
+
+    return _make
+
+
+@pytest.fixture
+def make_invite(client: TestClient, db_session: Session) -> Callable[[], str]:
+    """Create a fresh, unused invite code and return it."""
+    counter = iter(range(1, 1000))
+
+    def _make() -> str:
+        code = f"TEST-{next(counter):04d}"
+        db_session.add(InviteCode(code=code))
+        db_session.commit()
+        return code
 
     return _make

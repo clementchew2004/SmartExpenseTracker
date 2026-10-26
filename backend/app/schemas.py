@@ -2,7 +2,7 @@ import datetime
 from decimal import Decimal
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 Currency = Literal["GBP", "MYR"]
 Category = Literal[
@@ -78,3 +78,34 @@ class MonthlyStats(BaseModel):
     month: str
     totals: dict[Currency, dict[Category, Decimal]]
     currency_totals: dict[Currency, Decimal]
+
+
+# --- Auth ---
+
+
+class RegisterRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    email: EmailStr  # checks it's a real email format, e.g. me@gmail.co.uk
+    # 8+ characters, no symbol rules (length matters most); 128 max so nobody can
+    # make the deliberately slow hasher chew on a megabyte "password".
+    password: str = Field(min_length=8, max_length=128)
+    invite_code: str = Field(min_length=1, max_length=64)
+    default_currency: Currency
+
+
+class UserRead(BaseModel):
+    """What the API shows about a user - never the password hash."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    email: str
+    default_currency: Currency
+
+
+class TokenResponse(BaseModel):
+    """OAuth2's standard shape: the app sends "Authorization: Bearer <access_token>"."""
+
+    access_token: str
+    token_type: str = "bearer"

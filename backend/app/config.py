@@ -13,6 +13,13 @@ class Settings(BaseSettings):
     # Websites whose JavaScript may call this API from a browser.
     CORS_ORIGINS: list[str] = ["http://localhost:5173"]
 
+    # Auth
+    JWT_SECRET_KEY: SecretStr  # signs access tokens; changing it logs everyone out
+    ACCESS_TOKEN_MINUTES: int = 15
+    REFRESH_TOKEN_DAYS: int = 30  # counted from login, not extended by refreshing
+    # Secure cookies are only sent over HTTPS: off for http:// dev, on in production.
+    COOKIE_SECURE: bool = False
+
 
 @lru_cache
 def get_settings() -> Settings:
