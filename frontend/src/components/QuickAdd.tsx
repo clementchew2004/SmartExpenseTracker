@@ -15,6 +15,10 @@ type Draft = {
 }
 type Notice = { text: string; undo?: { draft: Draft; index: number } }
 
+// Card ids only need to be unique on screen. (Not crypto.randomUUID(): browsers only
+// provide it on HTTPS/localhost, so it crashed when testing on a phone over Wi-Fi.)
+let nextDraftId = 0
+
 type Props = {
   /** Told after each save, so the chart can show that currency. */
   onSaved: (currency: Currency) => void
@@ -63,7 +67,7 @@ export function QuickAdd({ onSaved }: Props) {
       onSuccess: (result) =>
         setDrafts(
           result.expenses.map((parsed) => ({
-            id: crypto.randomUUID(),
+            id: String(++nextDraftId),
             // The API only returns parsed expenses that have an amount.
             expense: { ...parsed, amount: parsed.amount ?? '' },
             editing: false,
