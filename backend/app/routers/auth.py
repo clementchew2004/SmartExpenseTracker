@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.auth import (
     DUMMY_PASSWORD_HASH,
+    CurrentUser,
     create_access_token,
     hash_password,
     hash_refresh_token,
@@ -210,3 +211,9 @@ def logout(db: DbSession, refresh_token: RefreshCookie = None) -> Response:
     response = Response(status_code=status.HTTP_204_NO_CONTENT)
     clear_refresh_cookie(response)
     return response
+
+
+@router.get("/me")
+def me(user: CurrentUser) -> UserRead:
+    """Who the access token belongs to. The app shows this on the Settings tab."""
+    return user

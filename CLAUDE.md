@@ -201,7 +201,7 @@ npm install @tanstack/react-query recharts
 - [x] `POST /auth/register` and `POST /auth/login` (returns JWT) `[I write]`
 - [x] `get_current_user` dependency that decodes the JWT; every expense route depends on it `[I write]`
 - [x] All queries filtered by `user_id`; a test proves user A can't read user B's expenses
-- [ ] Frontend login page; token stored in memory + refresh on reload
+- [x] Frontend login page; token stored in memory + refresh on reload
 
 **Done when:** I can explain the full chain from request → `OAuth2PasswordBearer` → `get_current_user` → route.
 

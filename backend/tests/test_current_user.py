@@ -41,7 +41,7 @@ def assert_not_logged_in(response):
 def test_every_protected_route_needs_a_token(anon_client, method, path):
     response = anon_client.request(method, path)
 
-    assert response.status_code == 401
+    assert_not_logged_in(response)
 
 
 def test_a_junk_token_is_refused(anon_client):
@@ -89,6 +89,21 @@ def test_open_routes_need_no_token(anon_client):
     assert anon_client.get("/health").status_code == 200
     # /auth routes can't need an access token: they're how you get one.
     assert anon_client.post("/auth/refresh").json()["detail"] == "Not logged in"
+
+
+def test_me_returns_the_logged_in_user(client):
+    response = client.get("/auth/me")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "id": 1,
+        "email": "me@example.com",
+        "default_currency": "GBP",
+    }
+
+
+def test_me_needs_a_token(anon_client):
+    assert_not_logged_in(anon_client.get("/auth/me"))
 
 
 # --- User A can never see or touch user B's expenses ------------------------

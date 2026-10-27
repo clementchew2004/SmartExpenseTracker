@@ -10,6 +10,9 @@ export type ExpenseUpdate = Schemas['ExpenseUpdate']
 export type MonthlyStats = Schemas['MonthlyStats']
 export type Currency = ExpenseCreate['currency']
 export type Category = ExpenseCreate['category']
+export type UserRead = Schemas['UserRead']
+export type RegisterRequest = Schemas['RegisterRequest']
+type TokenResponse = Schemas['TokenResponse']
 
 const API_URL: string = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
@@ -42,20 +45,86 @@ async function errorMessage(response: Response): Promise<string> {
   return `Something went wrong (${response.status})`
 }
 
-type RequestOptions = { method?: 'GET' | 'POST' | 'PATCH' | 'DELETE'; body?: unknown }
+// --- The access token ("wristband") --------------------------------------------
 
-async function request<T>(path: string, { method = 'GET', body }: RequestOptions = {}): Promise<T> {
-  let response: Response
+// A plain variable, not React state: request() isn't a component, and a reload
+// should forget it. The httpOnly refresh cookie is what survives a reload.
+let accessToken: string | null = null
+
+// The app (auth.tsx) registers this to switch to the login screen when the
+// session turns out to be over in the middle of using the app.
+let onSessionEnded: () => void = () => {}
+export function setOnSessionEnded(callback: () => void) {
+  onSessionEnded = callback
+}
+
+// The one refresh in progress, if any. Every 401 that arrives meanwhile waits
+// for this same trip instead of starting its own: two refreshes with the same
+// cookie would look like a stolen token and log you out everywhere.
+let refreshing: Promise<boolean> | null = null
+
+/** Swap the refresh cookie for a new access token. True if still logged in. */
+export function refreshAccessToken(): Promise<boolean> {
+  refreshing ??= (async () => {
+    try {
+      const tokens = await request<TokenResponse>('/auth/refresh', { method: 'POST' })
+      accessToken = tokens.access_token
+      return true
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        accessToken = null
+        return false
+      }
+      throw error // offline or server down: unknown, not "logged out"
+    } finally {
+      refreshing = null
+    }
+  })()
+  return refreshing
+}
+
+// --- Sending requests ------------------------------------------------------------
+
+type RequestOptions = {
+  method?: 'GET' | 'POST' | 'PATCH' | 'DELETE'
+  body?: unknown
+  form?: URLSearchParams // login is an OAuth2 form, not JSON
+}
+
+// A 401 from these means "wrong password" or "session over", never "token
+// expired", so refreshing and retrying would only loop.
+const NO_RETRY = new Set(['/auth/login', '/auth/register', '/auth/refresh', '/auth/logout'])
+
+async function send(path: string, { method = 'GET', body, form }: RequestOptions): Promise<Response> {
+  const headers: Record<string, string> = {}
+  if (body !== undefined) headers['Content-Type'] = 'application/json'
+  if (accessToken) headers.Authorization = `Bearer ${accessToken}`
   try {
-    response = await fetch(`${API_URL}${path}`, {
+    return await fetch(`${API_URL}${path}`, {
       method,
-      headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
-      body: body === undefined ? undefined : JSON.stringify(body),
+      headers,
+      body: form ?? (body === undefined ? undefined : JSON.stringify(body)),
+      // Lets the browser send and store the refresh cookie on this other origin.
+      credentials: 'include',
     })
   } catch {
     // fetch only throws when there is no response at all (server down, offline, CORS).
     throw new ApiError(0, "Can't reach the server - is the API running?")
   }
+}
+
+async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  let response = await send(path, options)
+
+  // Access token expired: get a new one, then try this request once more.
+  if (response.status === 401 && !NO_RETRY.has(path)) {
+    if (await refreshAccessToken()) {
+      response = await send(path, options)
+    } else {
+      onSessionEnded() // the 30 days are over, or you logged out elsewhere
+    }
+  }
+
   if (!response.ok) {
     throw new ApiError(response.status, await errorMessage(response))
   }
@@ -94,4 +163,29 @@ export function deleteExpense(id: number): Promise<void> {
 
 export function getMonthlyStats(month: string): Promise<MonthlyStats> {
   return request(`/stats/monthly?month=${encodeURIComponent(month)}`)
+}
+
+// --- Accounts ----------------------------------------------------------------------
+
+export async function login(email: string, password: string): Promise<void> {
+  // OAuth2 password flow: the email goes in a field called "username".
+  const form = new URLSearchParams({ username: email, password })
+  const tokens = await request<TokenResponse>('/auth/login', { method: 'POST', form })
+  accessToken = tokens.access_token
+}
+
+export function register(details: RegisterRequest): Promise<UserRead> {
+  return request('/auth/register', { method: 'POST', body: details })
+}
+
+export async function logout(): Promise<void> {
+  try {
+    await request('/auth/logout', { method: 'POST' }) // revokes the cookie on the server
+  } finally {
+    accessToken = null // forget the token even if the server couldn't be reached
+  }
+}
+
+export function getMe(): Promise<UserRead> {
+  return request('/auth/me')
 }

@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router'
 import './index.css'
 import App from './App.tsx'
+import { AuthProvider } from './auth.tsx'
 
 // One cache for all server data (stats, expense list) shared by every component.
 const queryClient = new QueryClient()
@@ -13,7 +14,10 @@ createRoot(document.getElementById('root')!).render(
     <QueryClientProvider client={queryClient}>
       {/* Routes come from the address bar, so Back and refresh work like a website. */}
       <BrowserRouter>
-        <App />
+        {/* Inside the query client: logging out empties its cache. */}
+        <AuthProvider>
+          <App />
+        </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>
   </StrictMode>,

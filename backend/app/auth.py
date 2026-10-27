@@ -88,13 +88,14 @@ def hash_refresh_token(token: str) -> str:
 # --- Who is calling? (the dependency every protected route uses) -------------
 
 # Reads "Authorization: Bearer <token>" and hands over just the token string.
-# No header -> 401 before get_current_user even runs. tokenUrl adds the
-# Authorize button to /docs, which logs in through /auth/login.
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+# auto_error=False: no header gives None instead of the scheme's own 401, so a
+# missing token gets the same response as every other failure below.
+# tokenUrl adds the Authorize button to /docs, which logs in through /auth/login.
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
 
 
 def get_current_user(
-    token: Annotated[str, Depends(oauth2_scheme)],
+    token: Annotated[str | None, Depends(oauth2_scheme)],
     db: Annotated[Session, Depends(get_db)],
 ) -> User:
     # One response for every failure: the client only needs "log in again".
@@ -103,6 +104,8 @@ def get_current_user(
         "Not logged in",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    if token is None:
+        raise not_logged_in
     # 1. Signature and expiry: proves OUR server issued it, recently.
     try:
         user_id = decode_access_token(token)

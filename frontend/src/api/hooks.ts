@@ -5,6 +5,7 @@ import {
   createExpense,
   deleteExpense,
   getExpense,
+  getMe,
   getMonthlyStats,
   listExpenses,
   parseText,
@@ -32,6 +33,11 @@ export function useExpense(id: number) {
     queryKey: ['expenses', 'one', id],
     queryFn: () => getExpense(id),
   })
+}
+
+/** The logged-in user (email, default currency). */
+export function useMe() {
+  return useQuery({ queryKey: ['me'], queryFn: getMe })
 }
 
 /** Sentence -> parsed expenses. Saves nothing. */

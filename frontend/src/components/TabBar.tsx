@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router'
 
-/** Bottom navigation. More tabs (Insights, Settings) arrive with later phases. */
+/** Bottom navigation. An Insights tab arrives in a later phase. */
 export function TabBar() {
   return (
     <nav className="tab-bar" aria-label="Main">
@@ -16,6 +16,13 @@ export function TabBar() {
           <path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01" />
         </svg>
         Expenses
+      </NavLink>
+      <NavLink to="/settings">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="8" r="4" />
+          <path d="M4 20c0-4 3.6-6 8-6s8 2 8 6" />
+        </svg>
+        Settings
       </NavLink>
     </nav>
   )
