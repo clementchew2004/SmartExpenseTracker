@@ -1,13 +1,20 @@
-"""Passwords, access tokens and refresh tokens. No HTTP here - routers/auth.py uses these."""
+"""Passwords, access tokens and refresh tokens, plus get_current_user: the
+dependency every protected route uses to find out who is calling."""
 
 import datetime
 import hashlib
 import secrets
+from typing import Annotated
 
 import jwt
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
 from pwdlib import PasswordHash
+from sqlalchemy.orm import Session
 
 from app.config import get_settings
+from app.db import get_db
+from app.models import User
 
 JWT_ALGORITHM = "HS256"
 
@@ -76,3 +83,37 @@ def hash_refresh_token(token: str) -> str:
     # A fast hash is fine here: the token is 32 random bytes, so unlike a
     # human-chosen password there's nothing to guess. Passwords need slow Argon2.
     return hashlib.sha256(token.encode()).hexdigest()
+
+
+# --- Who is calling? (the dependency every protected route uses) -------------
+
+# Reads "Authorization: Bearer <token>" and hands over just the token string.
+# No header -> 401 before get_current_user even runs. tokenUrl adds the
+# Authorize button to /docs, which logs in through /auth/login.
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+
+
+def get_current_user(
+    token: Annotated[str, Depends(oauth2_scheme)],
+    db: Annotated[Session, Depends(get_db)],
+) -> User:
+    # One response for every failure: the client only needs "log in again".
+    not_logged_in = HTTPException(
+        status.HTTP_401_UNAUTHORIZED,
+        "Not logged in",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    # 1. Signature and expiry: proves OUR server issued it, recently.
+    try:
+        user_id = decode_access_token(token)
+    except (jwt.InvalidTokenError, KeyError, ValueError) as e:
+        raise not_logged_in from e
+    # 2. The token can't know if the account was deleted since; only the DB can.
+    user = db.get(User, user_id)
+    if user is None:
+        raise not_logged_in
+    # 3. The whole row, so routes have user.id AND user.default_currency.
+    return user
+
+
+CurrentUser = Annotated[User, Depends(get_current_user)]

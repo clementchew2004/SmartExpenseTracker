@@ -8,10 +8,11 @@ from app.models import Expense
 
 
 def monthly_totals(
-    db: Session, start: datetime.date, end: datetime.date
+    db: Session, user_id: int, start: datetime.date, end: datetime.date
 ) -> dict[str, dict[str, Decimal]]:
     stmt = (
         select(Expense.currency, Expense.category, func.sum(Expense.amount))
+        .where(Expense.user_id == user_id)
         .where(Expense.date >= start, Expense.date < end)
         .group_by(Expense.currency, Expense.category)
         .order_by(Expense.currency, Expense.category)
@@ -26,11 +27,12 @@ def monthly_totals(
 
 
 def monthly_currency_totals(
-    db: Session, start: datetime.date, end: datetime.date
+    db: Session, user_id: int, start: datetime.date, end: datetime.date
 ) -> dict[str, Decimal]:
     """One total per currency. Never one grand total: GBP and MYR don't add up."""
     stmt = (
         select(Expense.currency, func.sum(Expense.amount))
+        .where(Expense.user_id == user_id)
         .where(Expense.date >= start, Expense.date < end)
         .group_by(Expense.currency)
         .order_by(Expense.currency)

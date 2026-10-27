@@ -4,6 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.auth import CurrentUser
 from app.db import get_db
 from app.schemas import MonthlyStats
 from app.services.stats import monthly_currency_totals, monthly_totals
@@ -14,7 +15,7 @@ DbSession = Annotated[Session, Depends(get_db)]
 
 
 @router.get("/monthly")
-def monthly_stats(month: str, db: DbSession) -> MonthlyStats:
+def monthly_stats(month: str, db: DbSession, user: CurrentUser) -> MonthlyStats:
     try:
         start = datetime.datetime.strptime(month, "%Y-%m").date()
     except ValueError:
@@ -30,6 +31,6 @@ def monthly_stats(month: str, db: DbSession) -> MonthlyStats:
 
     return MonthlyStats(
         month=month,
-        totals=monthly_totals(db, start, end),
-        currency_totals=monthly_currency_totals(db, start, end),
+        totals=monthly_totals(db, user.id, start, end),
+        currency_totals=monthly_currency_totals(db, user.id, start, end),
     )

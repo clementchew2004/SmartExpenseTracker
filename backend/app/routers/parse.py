@@ -4,6 +4,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
+from app.auth import CurrentUser
 from app.llm.client import LLMClient, LLMError, get_llm_client
 from app.llm.parse import ExpenseParseError, UserInputError, parse_expense_text
 from app.schemas import ParseResult, ParseTextRequest
@@ -16,10 +17,12 @@ LLM = Annotated[LLMClient, Depends(get_llm_client)]
 
 
 @router.post("/text")
-def parse_text(body: ParseTextRequest, llm: LLM) -> ParseResult:
+def parse_text(body: ParseTextRequest, llm: LLM, user: CurrentUser) -> ParseResult:
     """Turn a sentence into expenses for the user to review. Saves nothing."""
     try:
-        expenses = parse_expense_text(body.text, llm, datetime.date.today())
+        expenses = parse_expense_text(
+            body.text, llm, datetime.date.today(), user.default_currency
+        )
     except UserInputError as e:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(e)

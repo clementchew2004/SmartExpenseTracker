@@ -57,8 +57,8 @@ class Expense(Base):
     __tablename__ = "expenses"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    # Optional for now; becomes required in step 4.3 once every route sets it.
-    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), index=True)
+    # Every expense has an owner; routes set it from the logged-in user.
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     amount: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     currency: Mapped[str] = mapped_column(String(3))
     date: Mapped[datetime.date]

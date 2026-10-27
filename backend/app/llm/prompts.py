@@ -3,7 +3,7 @@ from typing import get_args
 
 from app.schemas import Category, Currency
 
-# Until Phase 4, when each user has their own default currency.
+# The route passes each user's own currency; this default is for evals and tests.
 DEFAULT_CURRENCY: Currency = "GBP"
 
 # General examples only - never copy sentences from the eval set in here,

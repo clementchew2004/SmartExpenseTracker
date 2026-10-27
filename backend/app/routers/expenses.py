@@ -7,6 +7,7 @@ from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.auth import CurrentUser
 from app.db import get_db
 from app.models import Expense
 from app.schemas import Category, ExpenseCreate, ExpenseRead, ExpenseUpdate
@@ -16,8 +17,12 @@ router = APIRouter(prefix="/expenses", tags=["expenses"])
 DbSession = Annotated[Session, Depends(get_db)]
 
 
-def find_expense(db: Session, expense_id: int) -> Expense:
-    expense = db.get(Expense, expense_id)
+def find_expense(db: Session, expense_id: int, user_id: int) -> Expense:
+    # Matching on the owner too means someone else's expense looks exactly like
+    # one that doesn't exist: a 404 that reveals nothing about other users.
+    expense = db.scalar(
+        select(Expense).where(Expense.id == expense_id, Expense.user_id == user_id)
+    )
     if expense is None:
         raise HTTPException(status_code=404, detail="Expense not found")
     return expense
@@ -26,6 +31,7 @@ def find_expense(db: Session, expense_id: int) -> Expense:
 @router.get("")
 def list_expenses(
     db: DbSession,
+    user: CurrentUser,
     date_from: Annotated[datetime.date | None, Query(alias="from")] = None,
     date_to: Annotated[datetime.date | None, Query(alias="to")] = None,
     category: Category | None = None,
@@ -38,7 +44,7 @@ def list_expenses(
             detail="'from' must be on or before 'to'",
         )
 
-    stmt = select(Expense)
+    stmt = select(Expense).where(Expense.user_id == user.id)
     if date_from is not None:
         stmt = stmt.where(Expense.date >= date_from)
     if date_to is not None:
@@ -52,8 +58,11 @@ def list_expenses(
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
-def create_expense(expense: ExpenseCreate, db: DbSession) -> ExpenseRead:
-    new_expense = Expense(**expense.model_dump())
+def create_expense(
+    expense: ExpenseCreate, db: DbSession, user: CurrentUser
+) -> ExpenseRead:
+    # The owner comes from the token, never from the request body.
+    new_expense = Expense(**expense.model_dump(), user_id=user.id)
     db.add(new_expense)
     db.commit()
     db.refresh(new_expense)
@@ -61,16 +70,16 @@ def create_expense(expense: ExpenseCreate, db: DbSession) -> ExpenseRead:
 
 
 @router.get("/{expense_id}")
-def get_expense(expense_id: int, db: DbSession) -> ExpenseRead:
-    return find_expense(db, expense_id)
+def get_expense(expense_id: int, db: DbSession, user: CurrentUser) -> ExpenseRead:
+    return find_expense(db, expense_id, user.id)
 
 
 @router.patch("/{expense_id}")
 def update_expense(
-    expense_id: int, changes: ExpenseUpdate, db: DbSession
+    expense_id: int, changes: ExpenseUpdate, db: DbSession, user: CurrentUser
 ) -> ExpenseRead:
     # 1. Find
-    expense = find_expense(db, expense_id)
+    expense = find_expense(db, expense_id, user.id)
 
     # 2. Only what the client sent
     sent_fields = changes.model_dump(exclude_unset=True)
@@ -93,7 +102,7 @@ def update_expense(
 
 
 @router.delete("/{expense_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_expense(expense_id: int, db: DbSession) -> None:
-    expense = find_expense(db, expense_id)
+def delete_expense(expense_id: int, db: DbSession, user: CurrentUser) -> None:
+    expense = find_expense(db, expense_id, user.id)
     db.delete(expense)
     db.commit()

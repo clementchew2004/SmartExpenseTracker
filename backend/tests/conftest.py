@@ -6,12 +6,16 @@ from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session, sessionmaker
 
+from app.auth import create_access_token, hash_password
 from app.config import get_settings
 from app.db import Base, get_db
 from app.main import app  # importing the app also registers every table
-from app.models import InviteCode
+from app.models import InviteCode, User
 
 TEST_DB_NAME = "expenses_test"
+
+# Hashed once: Argon2 is deliberately slow, and most tests need a user.
+TEST_PASSWORD_HASH = hash_password("correct horse")
 
 dev_url = make_url(get_settings().DATABASE_URL)
 test_url = dev_url.set(database=TEST_DB_NAME)
@@ -49,7 +53,8 @@ def db_session(engine: Engine) -> Iterator[Session]:
 
 
 @pytest.fixture
-def client(engine: Engine) -> Iterator[TestClient]:
+def anon_client(engine: Engine) -> Iterator[TestClient]:
+    """A client with no login, on an empty test database."""
     with engine.begin() as conn:
         # Every table, emptied before each test; CASCADE follows the foreign keys.
         conn.execute(
@@ -74,6 +79,38 @@ def client(engine: Engine) -> Iterator[TestClient]:
 
 
 @pytest.fixture
+def make_user(anon_client: TestClient, db_session: Session) -> Callable[..., User]:
+    """Insert a user straight into the DB (no invite needed) and return the row."""
+
+    def _make(email: str = "me@example.com", currency: str = "GBP") -> User:
+        user = User(
+            email=email, hashed_password=TEST_PASSWORD_HASH, default_currency=currency
+        )
+        db_session.add(user)
+        db_session.commit()
+        return user
+
+    return _make
+
+
+@pytest.fixture
+def client_for(anon_client: TestClient) -> Callable[[User], TestClient]:
+    """A separate client that sends this user's access token on every request."""
+
+    def _for(user: User) -> TestClient:
+        token = create_access_token(user.id)
+        return TestClient(app, headers={"Authorization": f"Bearer {token}"})
+
+    return _for
+
+
+@pytest.fixture
+def client(make_user, client_for) -> TestClient:
+    """Logged in as me@example.com (GBP). What most tests use."""
+    return client_for(make_user())
+
+
+@pytest.fixture
 def make_expense(client: TestClient) -> Callable[..., dict]:
     def _make(**overrides) -> dict:
         body = {
@@ -91,7 +128,7 @@ def make_expense(client: TestClient) -> Callable[..., dict]:
 
 
 @pytest.fixture
-def make_invite(client: TestClient, db_session: Session) -> Callable[[], str]:
+def make_invite(anon_client: TestClient, db_session: Session) -> Callable[[], str]:
     """Create a fresh, unused invite code and return it."""
     counter = iter(range(1, 1000))
 
