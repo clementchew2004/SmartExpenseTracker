@@ -4,13 +4,18 @@ import type { ExpenseFilters, ExpenseUpdate } from './client'
 import {
   createExpense,
   deleteExpense,
+  deleteDefaultBudget,
+  getBudgets,
   getExpense,
   getMe,
   getMonthlyStats,
   listExpenses,
   parseText,
+  setDefaultBudget,
+  setMonthBudget,
   updateExpense,
 } from './client'
+import type { Currency } from './client'
 
 /** This month's totals per currency and category (server state, cached by TanStack Query). */
 export function useMonthlyStats(month: string) {
@@ -52,6 +57,8 @@ function useRefreshAfterChange() {
     Promise.all([
       queryClient.invalidateQueries({ queryKey: ['expenses'] }),
       queryClient.invalidateQueries({ queryKey: ['stats'] }),
+      // "Spent" in the budget comes from expenses too, so the bar moves on save.
+      queryClient.invalidateQueries({ queryKey: ['budgets'] }),
     ])
 }
 
@@ -73,4 +80,41 @@ export function useUpdateExpense() {
 export function useDeleteExpense() {
   const refresh = useRefreshAfterChange()
   return useMutation({ mutationFn: deleteExpense, onSuccess: refresh })
+}
+
+/** A month's budgets per currency, with spent and the outlook (all computed by the API). */
+export function useBudgets(month: string) {
+  return useQuery({
+    queryKey: ['budgets', month],
+    queryFn: () => getBudgets(month),
+  })
+}
+
+/** Any budget change: refetch every month, since a usual amount affects them all. */
+function useRefreshBudgets() {
+  const queryClient = useQueryClient()
+  return () => queryClient.invalidateQueries({ queryKey: ['budgets'] })
+}
+
+export function useSetDefaultBudget() {
+  const refresh = useRefreshBudgets()
+  return useMutation({
+    mutationFn: ({ currency, amount }: { currency: Currency; amount: string }) =>
+      setDefaultBudget(currency, amount),
+    onSuccess: refresh,
+  })
+}
+
+export function useDeleteDefaultBudget() {
+  const refresh = useRefreshBudgets()
+  return useMutation({ mutationFn: deleteDefaultBudget, onSuccess: refresh })
+}
+
+export function useSetMonthBudget() {
+  const refresh = useRefreshBudgets()
+  return useMutation({
+    mutationFn: ({ month, currency, amount }: { month: string; currency: Currency; amount: string }) =>
+      setMonthBudget(month, currency, amount),
+    onSuccess: refresh,
+  })
 }

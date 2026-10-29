@@ -666,3 +666,132 @@ a.button.secondary {
   font-weight: 600;
   overflow-wrap: anywhere;
 }
+
+/* Budget */
+.budget {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.month-title {
+  flex: 1;
+  margin: 0;
+  text-align: center;
+}
+
+.budget-card,
+.budget-prompt {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.budget-numbers {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 1.0625rem;
+}
+
+.hint {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.budget-bar {
+  height: 12px;
+  border-radius: 6px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.budget-fill {
+  height: 100%;
+  border-radius: 6px;
+  background: var(--bar-colour);
+  transition: width 0.4s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .budget-fill {
+    transition: none;
+  }
+}
+
+/* One colour per tone; the bar and the verdict text both use it. */
+.tone-ok {
+  --bar-colour: var(--success);
+}
+.tone-warn {
+  --bar-colour: var(--warning);
+}
+.tone-over {
+  --bar-colour: var(--error);
+}
+.tone-planned {
+  --bar-colour: var(--muted);
+}
+
+.budget-verdict {
+  margin: 0;
+  font-weight: 600;
+  color: var(--bar-colour);
+}
+
+.budget-card button.link,
+.amount-form button.link {
+  align-self: flex-start;
+  min-height: 44px;
+  padding: 0;
+}
+
+.amount-form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.amount-symbol {
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.amount-form input {
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.usual-budgets ul {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.usual-budgets li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 44px;
+}
+
+.usual-budgets li .amount-form {
+  flex: 1;
+}
+
+.usual-actions {
+  display: flex;
+  gap: 16px;
+}
+
+.usual-actions button.link {
+  padding: 0;
+}

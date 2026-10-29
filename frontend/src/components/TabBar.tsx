@@ -17,6 +17,13 @@ export function TabBar() {
         </svg>
         Expenses
       </NavLink>
+      <NavLink to="/budget">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="8" />
+          <path d="M12 12l4-4" />
+        </svg>
+        Budget
+      </NavLink>
       <NavLink to="/settings">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <circle cx="12" cy="8" r="4" />

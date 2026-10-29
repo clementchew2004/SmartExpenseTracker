@@ -9,6 +9,7 @@ import { MonthlyChart } from './components/MonthlyChart'
 import { QuickAdd } from './components/QuickAdd'
 import { TabBar } from './components/TabBar'
 import { useAuth } from './useAuth'
+import { BudgetPage } from './pages/BudgetPage'
 import { EditExpensePage } from './pages/EditExpensePage'
 import { ExpensesPage } from './pages/ExpensesPage'
 import { LoginPage } from './pages/LoginPage'
@@ -85,6 +86,14 @@ function LoggedInApp() {
             element={
               <ErrorBoundary name="expense editor">
                 <EditExpensePage onDelete={deletion.schedule} />
+              </ErrorBoundary>
+            }
+          />
+          <Route
+            path="/budget"
+            element={
+              <ErrorBoundary name="budget">
+                <BudgetPage />
               </ErrorBoundary>
             }
           />

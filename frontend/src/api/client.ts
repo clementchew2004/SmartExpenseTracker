@@ -13,6 +13,9 @@ export type Category = ExpenseCreate['category']
 export type UserRead = Schemas['UserRead']
 export type RegisterRequest = Schemas['RegisterRequest']
 type TokenResponse = Schemas['TokenResponse']
+export type MonthBudgets = Schemas['MonthBudgets']
+export type BudgetStatus = Schemas['BudgetStatus']
+export type Outlook = BudgetStatus['outlook']
 
 const API_URL: string = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
@@ -86,7 +89,7 @@ export function refreshAccessToken(): Promise<boolean> {
 // --- Sending requests ------------------------------------------------------------
 
 type RequestOptions = {
-  method?: 'GET' | 'POST' | 'PATCH' | 'DELETE'
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
   body?: unknown
   form?: URLSearchParams // login is an OAuth2 form, not JSON
 }
@@ -188,4 +191,24 @@ export async function logout(): Promise<void> {
 
 export function getMe(): Promise<UserRead> {
   return request('/auth/me')
+}
+
+// --- Budgets -----------------------------------------------------------------------
+
+export function getBudgets(month: string): Promise<MonthBudgets> {
+  return request(`/budgets?month=${encodeURIComponent(month)}`)
+}
+
+/** Your usual monthly budget in this currency. */
+export function setDefaultBudget(currency: Currency, amount: string): Promise<void> {
+  return request(`/budgets/default/${currency}`, { method: 'PUT', body: { amount } })
+}
+
+export function deleteDefaultBudget(currency: Currency): Promise<void> {
+  return request(`/budgets/default/${currency}`, { method: 'DELETE' })
+}
+
+/** One month's own amount ("2026-11"); replaces the usual one for that month. */
+export function setMonthBudget(month: string, currency: Currency, amount: string): Promise<void> {
+  return request(`/budgets/${month}/${currency}`, { method: 'PUT', body: { amount } })
 }

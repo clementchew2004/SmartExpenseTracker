@@ -9,6 +9,7 @@
   --accent-text: #ffffff;
   --error: #b91c1c;
   --success: #15803d;
+  --warning: #a16207; /* budget 'likely over': 4.5:1+ as text on bg and surface */
 
   /* Chart categories: dataviz reference palette, validated order (CVD-safe). */
   --cat-1: #2a78d6;
@@ -40,6 +41,7 @@
     --accent-text: #042f2e;
     --error: #f87171;
     --success: #4ade80;
+    --warning: #facc15;
 
     --cat-1: #3987e5;
     --cat-2: #d95926;

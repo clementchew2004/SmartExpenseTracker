@@ -175,6 +175,71 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/budgets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Month Budgets */
+        get: operations["get_month_budgets_budgets_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/budgets/default/{currency}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Default Budget
+         * @description Your usual monthly budget in this currency (create or change it).
+         */
+        put: operations["set_default_budget_budgets_default__currency__put"];
+        post?: never;
+        /**
+         * Delete Default Budget
+         * @description Stop budgeting in this currency by default (e.g. MYR after a trip).
+         */
+        delete: operations["delete_default_budget_budgets_default__currency__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/budgets/{month}/{currency}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Month Budget
+         * @description This month's own budget in this currency; replaces the default for that month.
+         */
+        put: operations["set_month_budget_budgets__month___currency__put"];
+        post?: never;
+        /**
+         * Delete Month Budget
+         * @description Remove this month's own amount, so the default applies again.
+         */
+        delete: operations["delete_month_budget_budgets__month___currency__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -219,6 +284,44 @@ export interface components {
              * Format: password
              */
             client_secret?: string | null;
+        };
+        /**
+         * BudgetAmount
+         * @description Body for setting a budget: just the amount (currency is in the URL).
+         */
+        "BudgetAmount-Input": {
+            /** Amount */
+            amount: number | string;
+        };
+        /**
+         * BudgetAmount
+         * @description Body for setting a budget: just the amount (currency is in the URL).
+         */
+        "BudgetAmount-Output": {
+            /** Amount */
+            amount: string;
+        };
+        /** BudgetStatus */
+        BudgetStatus: {
+            /**
+             * Currency
+             * @enum {string}
+             */
+            currency: "GBP" | "MYR";
+            /** Amount */
+            amount: string;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "month" | "default";
+            /** Spent */
+            spent: string;
+            /**
+             * Outlook
+             * @enum {string}
+             */
+            outlook: "upcoming" | "too_early" | "on_track" | "likely_over" | "over" | "under";
         };
         /** ExpenseCreate */
         ExpenseCreate: {
@@ -289,6 +392,17 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** MonthBudgets */
+        MonthBudgets: {
+            /** Month */
+            month: string;
+            /** Budgets */
+            budgets: components["schemas"]["BudgetStatus"][];
+            /** Defaults */
+            defaults: {
+                [key: string]: string;
+            };
         };
         /** MonthlyStats */
         MonthlyStats: {
@@ -770,6 +884,167 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ParseResult"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_month_budgets_budgets_get: {
+        parameters: {
+            query: {
+                month: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonthBudgets"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_default_budget_budgets_default__currency__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                currency: "GBP" | "MYR";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BudgetAmount-Input"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BudgetAmount-Output"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_default_budget_budgets_default__currency__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                currency: "GBP" | "MYR";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_month_budget_budgets__month___currency__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                month: string;
+                currency: "GBP" | "MYR";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BudgetAmount-Input"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BudgetAmount-Output"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_month_budget_budgets__month___currency__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                month: string;
+                currency: "GBP" | "MYR";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

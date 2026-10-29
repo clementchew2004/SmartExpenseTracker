@@ -15,7 +15,7 @@ app = FastAPI(title="Smart Expense Tracker")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=get_settings().CORS_ORIGINS,
-    allow_methods=["GET", "POST", "PATCH", "DELETE"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
     allow_headers=["Content-Type", "Authorization"],
     # Lets the browser send and store the refresh cookie on cross-origin calls.
     # Requires an explicit origin list - it's refused with "*".
