@@ -2,7 +2,7 @@ import datetime
 from decimal import Decimal
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 
 Currency = Literal["GBP", "MYR"]
 Category = Literal[
@@ -136,3 +136,81 @@ class MonthBudgets(BaseModel):
     month: str
     budgets: list[BudgetStatus]  # only currencies that have a budget
     defaults: dict[Currency, Decimal]  # your usual amounts; empty = not set up yet
+
+
+# --- Repeating expenses ---
+
+Frequency = Literal["daily", "weekly", "monthly"]
+
+
+class RepeatCreate(ExpenseCreate):
+    """Repeat an expense you just saved. `date` is that first expense's date;
+    the first reminder is the date after it (e.g. a month later)."""
+
+    frequency: Frequency
+    end_date: datetime.date | None = None  # empty = until you stop it
+
+    @model_validator(mode="after")
+    def end_not_before_start(self) -> "RepeatCreate":
+        if self.end_date is not None and self.end_date < self.date:
+            raise ValueError("end_date can't be before the first date")
+        return self
+
+
+class RepeatDetails(BaseModel):
+    """What a repeat's future copies look like; used to check an edit's result."""
+
+    amount: Amount
+    currency: Currency
+    merchant: Merchant
+    category: Category
+    note: str | None = None
+    end_date: datetime.date | None = None
+
+
+class RepeatUpdate(BaseModel):
+    """Changes future reminders only; expenses already saved are never touched."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    amount: Amount | None = None
+    currency: Currency | None = None
+    merchant: Merchant | None = None
+    category: Category | None = None
+    note: str | None = None
+    end_date: datetime.date | None = None
+
+
+class RepeatRead(RepeatDetails):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    frequency: Frequency
+    day_of_month: int
+    next_due: datetime.date
+    finished: bool = False  # past its end date: no more reminders
+
+
+class DueReminder(BaseModel):
+    """One reminder card: a repeat's date that hasn't been saved or skipped."""
+
+    repeat_id: int
+    due_date: datetime.date
+    amount: Decimal
+    currency: Currency
+    merchant: str
+    category: Category
+    note: str | None
+
+
+class RepeatSave(ExpenseCreate):
+    """Save a reminder: the card's (possibly edited) expense, plus which due
+    date it's for, so the same card can never be saved twice."""
+
+    due_date: datetime.date
+
+
+class RepeatSkip(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    due_date: datetime.date

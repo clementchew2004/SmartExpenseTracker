@@ -109,3 +109,29 @@ class Budget(Base):
     month: Mapped[datetime.date]
     currency: Mapped[str] = mapped_column(String(3))
     amount: Mapped[Decimal] = mapped_column(Numeric(12, 2))
+
+
+class RepeatingExpense(Base):
+    """An expense that comes back (rent, a subscription). It never saves itself:
+    each due date becomes a reminder card you Save or Skip."""
+
+    __tablename__ = "repeating_expenses"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    # What each saved copy will look like (you can still edit it on the card).
+    amount: Mapped[Decimal] = mapped_column(Numeric(12, 2))
+    currency: Mapped[str] = mapped_column(String(3))
+    merchant: Mapped[str] = mapped_column(String(100))
+    category: Mapped[str] = mapped_column(String(20))
+    note: Mapped[str | None]
+    frequency: Mapped[str] = mapped_column(String(7))  # daily | weekly | monthly
+    # The day it was set up on, e.g. 31. Monthly dates use the month's last day
+    # when it's shorter (28 Feb), then go back to the 31st in March.
+    day_of_month: Mapped[int]
+    # The oldest date not yet saved or skipped: everything before it is handled.
+    next_due: Mapped[datetime.date]
+    end_date: Mapped[datetime.date | None]  # empty = until you stop it
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
