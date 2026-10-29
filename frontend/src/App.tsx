@@ -7,6 +7,7 @@ import { formatMoney } from './api/options'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { MonthlyChart } from './components/MonthlyChart'
 import { QuickAdd } from './components/QuickAdd'
+import { Reminders } from './components/Reminders'
 import { TabBar } from './components/TabBar'
 import { useAuth } from './useAuth'
 import { BudgetPage } from './pages/BudgetPage'
@@ -69,6 +70,10 @@ function LoggedInApp() {
                 </ErrorBoundary>
                 <ErrorBoundary name="monthly chart">
                   <MonthlyChart currency={chartCurrency} onCurrencyChange={setChartCurrency} />
+                </ErrorBoundary>
+                {/* Your choice: reminder cards below the chart. */}
+                <ErrorBoundary name="reminders">
+                  <Reminders />
                 </ErrorBoundary>
               </>
             }

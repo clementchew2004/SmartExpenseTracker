@@ -2,13 +2,15 @@ import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 
 import type { Currency, ExpenseCreate } from '../api/client'
-import { useCreateExpense, useParseText } from '../api/hooks'
-import { formatMoney } from '../api/options'
+import { useCreateExpense, useCreateRepeat, useParseText } from '../api/hooks'
+import { FREQUENCY_LABEL, formatMoney } from '../api/options'
 import { ExpenseCard } from './ExpenseCard'
+import type { RepeatChoice } from './RepeatOptions'
 
 type Draft = {
   id: string
   expense: ExpenseCreate
+  repeat: RepeatChoice
   editing: boolean
   saving: boolean
   error: string | null
@@ -31,6 +33,7 @@ export function QuickAdd({ onSaved }: Props) {
   const [notice, setNotice] = useState<Notice | null>(null)
   const parse = useParseText()
   const save = useCreateExpense()
+  const createRepeat = useCreateRepeat()
   const inputRef = useRef<HTMLInputElement>(null)
   const savedThisRound = useRef(false)
 
@@ -70,6 +73,7 @@ export function QuickAdd({ onSaved }: Props) {
             id: String(++nextDraftId),
             // The API only returns parsed expenses that have an amount.
             expense: { ...parsed, amount: parsed.amount ?? '' },
+            repeat: null,
             editing: false,
             saving: false,
             error: null,
@@ -92,6 +96,12 @@ export function QuickAdd({ onSaved }: Props) {
 
   /** Save one card. Returns whether it worked; on failure the card keeps the error. */
   async function saveDraft(draft: Draft): Promise<boolean> {
+    const { repeat } = draft
+    // Checked here too, so a bad end date can't leave a saved expense without its repeat.
+    if (repeat?.end_date && repeat.end_date < draft.expense.date) {
+      patch(draft.id, { error: "The repeat can't end before the expense's date" })
+      return false
+    }
     patch(draft.id, { saving: true, error: null })
     try {
       await save.mutateAsync(draft.expense)
@@ -107,13 +117,33 @@ export function QuickAdd({ onSaved }: Props) {
     savedThisRound.current = true
     setDrafts((current) => current.filter((d) => d.id !== draft.id))
     onSaved(draft.expense.currency)
+
+    // The expense is saved; now set up its repeat (the expense's date is the first one).
+    if (repeat) {
+      try {
+        await createRepeat.mutateAsync({
+          ...draft.expense,
+          frequency: repeat.frequency,
+          end_date: repeat.end_date || null,
+        })
+      } catch (error) {
+        // Don't offer Save again: that would save the expense a second time.
+        setNotice({
+          text: `Saved ${draft.expense.merchant}, but the repeat wasn't set up: ${
+            error instanceof Error ? error.message : 'unknown error'
+          }`,
+        })
+        return false
+      }
+    }
     return true
   }
 
   async function handleSave(draft: Draft) {
     if (await saveDraft(draft)) {
       const { amount, currency, category } = draft.expense
-      setNotice({ text: `Saved ${formatMoney(String(amount), currency)} · ${category}` })
+      const repeats = draft.repeat ? ` · repeats ${FREQUENCY_LABEL[draft.repeat.frequency].toLowerCase()}` : ''
+      setNotice({ text: `Saved ${formatMoney(String(amount), currency)} · ${category}${repeats}` })
       inputRef.current?.focus()
     }
   }
@@ -208,6 +238,8 @@ export function QuickAdd({ onSaved }: Props) {
           error={draft.error}
           onToggleEdit={() => patch(draft.id, { editing: !draft.editing })}
           onChange={(field, value) => change(draft.id, field, value)}
+          repeat={draft.repeat}
+          onRepeatChange={(repeat) => patch(draft.id, { repeat })}
           onSave={() => handleSave(draft)}
           onDiscard={() => handleDiscard(draft)}
         />

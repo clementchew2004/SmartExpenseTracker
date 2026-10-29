@@ -1,6 +1,8 @@
 import type { Currency, ExpenseCreate } from '../api/client'
 import { formatMoney } from '../api/options'
 import { ExpenseFields } from './ExpenseFields'
+import { RepeatOptions } from './RepeatOptions'
+import type { RepeatChoice } from './RepeatOptions'
 
 type Props = {
   expense: ExpenseCreate
@@ -9,6 +11,8 @@ type Props = {
   error: string | null
   onToggleEdit: () => void
   onChange: <K extends keyof ExpenseCreate>(field: K, value: ExpenseCreate[K]) => void
+  repeat: RepeatChoice
+  onRepeatChange: (repeat: RepeatChoice) => void
   onSave: () => void
   onDiscard: () => void
 }
@@ -24,6 +28,8 @@ export function ExpenseCard({
   error,
   onToggleEdit,
   onChange,
+  repeat,
+  onRepeatChange,
   onSave,
   onDiscard,
 }: Props) {
@@ -67,6 +73,8 @@ export function ExpenseCard({
           </div>
         </dl>
       )}
+
+      <RepeatOptions repeat={repeat} startDate={expense.date} onChange={onRepeatChange} />
 
       {error && (
         <p className="error" role="alert">

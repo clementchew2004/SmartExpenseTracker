@@ -16,6 +16,11 @@ type TokenResponse = Schemas['TokenResponse']
 export type MonthBudgets = Schemas['MonthBudgets']
 export type BudgetStatus = Schemas['BudgetStatus']
 export type Outlook = BudgetStatus['outlook']
+export type RepeatRead = Schemas['RepeatRead']
+export type RepeatCreate = Schemas['RepeatCreate']
+export type RepeatUpdate = Schemas['RepeatUpdate']
+export type DueReminder = Schemas['DueReminder']
+export type Frequency = RepeatRead['frequency']
 
 const API_URL: string = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
@@ -211,4 +216,46 @@ export function deleteDefaultBudget(currency: Currency): Promise<void> {
 /** One month's own amount ("2026-11"); replaces the usual one for that month. */
 export function setMonthBudget(month: string, currency: Currency, amount: string): Promise<void> {
   return request(`/budgets/${month}/${currency}`, { method: 'PUT', body: { amount } })
+}
+
+// --- Repeating expenses --------------------------------------------------------------
+
+/** Start repeating an expense you've just saved (its date is the first one). */
+export function createRepeat(repeat: RepeatCreate): Promise<RepeatRead> {
+  return request('/repeats', { method: 'POST', body: repeat })
+}
+
+export function listRepeats(): Promise<RepeatRead[]> {
+  return request('/repeats')
+}
+
+/** Reminder cards: dates due up to today, worked out by the API when asked. */
+export function listDueReminders(): Promise<DueReminder[]> {
+  return request('/repeats/due')
+}
+
+/** Confirm a reminder (possibly edited) as a real expense. */
+export function saveReminder(
+  repeatId: number,
+  dueDate: string,
+  expense: ExpenseCreate,
+): Promise<ExpenseRead> {
+  return request(`/repeats/${repeatId}/save`, {
+    method: 'POST',
+    body: { ...expense, due_date: dueDate },
+  })
+}
+
+/** Didn't pay this one: move on without saving. */
+export function skipReminder(repeatId: number, dueDate: string): Promise<void> {
+  return request(`/repeats/${repeatId}/skip`, { method: 'POST', body: { due_date: dueDate } })
+}
+
+/** Change future reminders; saved expenses are never touched. */
+export function updateRepeat(id: number, changes: RepeatUpdate): Promise<RepeatRead> {
+  return request(`/repeats/${id}`, { method: 'PATCH', body: changes })
+}
+
+export function deleteRepeat(id: number): Promise<void> {
+  return request(`/repeats/${id}`, { method: 'DELETE' })
 }

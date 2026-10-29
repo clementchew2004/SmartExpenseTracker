@@ -795,3 +795,102 @@ a.button.secondary {
 .usual-actions button.link {
   padding: 0;
 }
+
+/* Repeat checkbox on the confirmation card */
+.repeat-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+label.checkbox,
+.frequency label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  font-weight: 600;
+}
+
+label.checkbox input,
+.frequency input {
+  width: 20px;
+  min-height: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.repeat-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-left: 28px;
+}
+
+.repeat-section label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.repeat-section input[type='date'] {
+  color: var(--text);
+  font-size: 1rem;
+}
+
+.frequency {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.frequency label {
+  font-size: 1rem;
+  color: var(--text);
+  flex-direction: row;
+}
+
+/* Reminder cards (below the chart) and repeats in Settings */
+.reminders,
+.repeat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.reminder,
+.repeat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* A thin accent edge tells a reminder apart from a freshly parsed card. */
+.reminder {
+  border-left: 4px solid var(--accent);
+}
+
+.reminder-due {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.reminder-summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+  font-size: 1.0625rem;
+}
+
+.repeat-card .muted {
+  font-size: 0.9375rem;
+}

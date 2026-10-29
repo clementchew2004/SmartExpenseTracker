@@ -240,6 +240,115 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/repeats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Repeats
+         * @description Every repeat you've set up, for Settings.
+         */
+        get: operations["list_repeats_repeats_get"];
+        put?: never;
+        /**
+         * Create Repeat
+         * @description Start repeating an expense you've just saved (its date = the first one).
+         */
+        post: operations["create_repeat_repeats_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/repeats/due": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Due Reminders
+         * @description The reminder cards: worked out now, from next_due and today. No cron.
+         */
+        get: operations["due_reminders_repeats_due_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/repeats/{repeat_id}/save": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Save Reminder
+         * @description You confirmed the card: save it as a real expense, then move on.
+         */
+        post: operations["save_reminder_repeats__repeat_id__save_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/repeats/{repeat_id}/skip": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Skip Reminder
+         * @description You didn't pay this one (away, a free month): move on without saving.
+         */
+        post: operations["skip_reminder_repeats__repeat_id__skip_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/repeats/{repeat_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Repeat
+         * @description Stop repeating. Expenses already saved from it stay as they are.
+         */
+        delete: operations["delete_repeat_repeats__repeat_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Repeat
+         * @description Change future reminders. Expenses already saved are separate rows, so
+         *     nothing here can touch them.
+         */
+        patch: operations["update_repeat_repeats__repeat_id__patch"];
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -322,6 +431,35 @@ export interface components {
              * @enum {string}
              */
             outlook: "upcoming" | "too_early" | "on_track" | "likely_over" | "over" | "under";
+        };
+        /**
+         * DueReminder
+         * @description One reminder card: a repeat's date that hasn't been saved or skipped.
+         */
+        DueReminder: {
+            /** Repeat Id */
+            repeat_id: number;
+            /**
+             * Due Date
+             * Format: date
+             */
+            due_date: string;
+            /** Amount */
+            amount: string;
+            /**
+             * Currency
+             * @enum {string}
+             */
+            currency: "GBP" | "MYR";
+            /** Merchant */
+            merchant: string;
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "Food" | "Groceries" | "Transport" | "Shopping" | "Subscriptions" | "Entertainment" | "Bills" | "Health" | "Travel" | "Other";
+            /** Note */
+            note: string | null;
         };
         /** ExpenseCreate */
         ExpenseCreate: {
@@ -472,6 +610,140 @@ export interface components {
              * @enum {string}
              */
             default_currency: "GBP" | "MYR";
+        };
+        /**
+         * RepeatCreate
+         * @description Repeat an expense you just saved. `date` is that first expense's date;
+         *     the first reminder is the date after it (e.g. a month later).
+         */
+        RepeatCreate: {
+            /** Amount */
+            amount: number | string;
+            /**
+             * Currency
+             * @enum {string}
+             */
+            currency: "GBP" | "MYR";
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Merchant */
+            merchant: string;
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "Food" | "Groceries" | "Transport" | "Shopping" | "Subscriptions" | "Entertainment" | "Bills" | "Health" | "Travel" | "Other";
+            /** Note */
+            note?: string | null;
+            /**
+             * Frequency
+             * @enum {string}
+             */
+            frequency: "daily" | "weekly" | "monthly";
+            /** End Date */
+            end_date?: string | null;
+        };
+        /** RepeatRead */
+        RepeatRead: {
+            /** Amount */
+            amount: string;
+            /**
+             * Currency
+             * @enum {string}
+             */
+            currency: "GBP" | "MYR";
+            /** Merchant */
+            merchant: string;
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "Food" | "Groceries" | "Transport" | "Shopping" | "Subscriptions" | "Entertainment" | "Bills" | "Health" | "Travel" | "Other";
+            /** Note */
+            note?: string | null;
+            /** End Date */
+            end_date?: string | null;
+            /** Id */
+            id: number;
+            /**
+             * Frequency
+             * @enum {string}
+             */
+            frequency: "daily" | "weekly" | "monthly";
+            /** Day Of Month */
+            day_of_month: number;
+            /**
+             * Next Due
+             * Format: date
+             */
+            next_due: string;
+            /**
+             * Finished
+             * @default false
+             */
+            finished: boolean;
+        };
+        /**
+         * RepeatSave
+         * @description Save a reminder: the card's (possibly edited) expense, plus which due
+         *     date it's for, so the same card can never be saved twice.
+         */
+        RepeatSave: {
+            /** Amount */
+            amount: number | string;
+            /**
+             * Currency
+             * @enum {string}
+             */
+            currency: "GBP" | "MYR";
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Merchant */
+            merchant: string;
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "Food" | "Groceries" | "Transport" | "Shopping" | "Subscriptions" | "Entertainment" | "Bills" | "Health" | "Travel" | "Other";
+            /** Note */
+            note?: string | null;
+            /**
+             * Due Date
+             * Format: date
+             */
+            due_date: string;
+        };
+        /** RepeatSkip */
+        RepeatSkip: {
+            /**
+             * Due Date
+             * Format: date
+             */
+            due_date: string;
+        };
+        /**
+         * RepeatUpdate
+         * @description Changes future reminders only; expenses already saved are never touched.
+         */
+        RepeatUpdate: {
+            /** Amount */
+            amount?: number | string | null;
+            /** Currency */
+            currency?: ("GBP" | "MYR") | null;
+            /** Merchant */
+            merchant?: string | null;
+            /** Category */
+            category?: ("Food" | "Groceries" | "Transport" | "Shopping" | "Subscriptions" | "Entertainment" | "Bills" | "Health" | "Travel" | "Other") | null;
+            /** Note */
+            note?: string | null;
+            /** End Date */
+            end_date?: string | null;
         };
         /**
          * TokenResponse
@@ -1045,6 +1317,211 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_repeats_repeats_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RepeatRead"][];
+                };
+            };
+        };
+    };
+    create_repeat_repeats_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RepeatCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RepeatRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    due_reminders_repeats_due_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DueReminder"][];
+                };
+            };
+        };
+    };
+    save_reminder_repeats__repeat_id__save_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                repeat_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RepeatSave"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    skip_reminder_repeats__repeat_id__skip_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                repeat_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RepeatSkip"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_repeat_repeats__repeat_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                repeat_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_repeat_repeats__repeat_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                repeat_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RepeatUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RepeatRead"];
+                };
             };
             /** @description Validation Error */
             422: {

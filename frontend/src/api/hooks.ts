@@ -3,6 +3,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { ExpenseFilters, ExpenseUpdate } from './client'
 import {
   createExpense,
+  createRepeat,
+  deleteRepeat,
+  listDueReminders,
+  listRepeats,
+  saveReminder,
+  skipReminder,
+  updateRepeat,
   deleteExpense,
   deleteDefaultBudget,
   getBudgets,
@@ -15,7 +22,7 @@ import {
   setMonthBudget,
   updateExpense,
 } from './client'
-import type { Currency } from './client'
+import type { Currency, ExpenseCreate, RepeatUpdate } from './client'
 
 /** This month's totals per currency and category (server state, cached by TanStack Query). */
 export function useMonthlyStats(month: string) {
@@ -117,4 +124,65 @@ export function useSetMonthBudget() {
       setMonthBudget(month, currency, amount),
     onSuccess: refresh,
   })
+}
+
+/** Repeats for Settings. */
+export function useRepeats() {
+  return useQuery({ queryKey: ['repeats', 'all'], queryFn: listRepeats })
+}
+
+/** Reminder cards for the Add page. */
+export function useDueReminders() {
+  return useQuery({ queryKey: ['repeats', 'due'], queryFn: listDueReminders })
+}
+
+function useRefreshRepeats() {
+  const queryClient = useQueryClient()
+  return () => queryClient.invalidateQueries({ queryKey: ['repeats'] })
+}
+
+export function useCreateRepeat() {
+  const refresh = useRefreshRepeats()
+  return useMutation({ mutationFn: createRepeat, onSuccess: refresh })
+}
+
+/** Saving a reminder adds an expense, so the list, chart and budget refresh too. */
+export function useSaveReminder() {
+  const refreshExpenses = useRefreshAfterChange()
+  const refreshRepeats = useRefreshRepeats()
+  return useMutation({
+    mutationFn: ({
+      repeatId,
+      dueDate,
+      expense,
+    }: {
+      repeatId: number
+      dueDate: string
+      expense: ExpenseCreate
+    }) => saveReminder(repeatId, dueDate, expense),
+    onSuccess: () => Promise.all([refreshExpenses(), refreshRepeats()]),
+  })
+}
+
+export function useSkipReminder() {
+  const refresh = useRefreshRepeats()
+  return useMutation({
+    mutationFn: ({ repeatId, dueDate }: { repeatId: number; dueDate: string }) =>
+      skipReminder(repeatId, dueDate),
+    onSuccess: refresh,
+  })
+}
+
+export function useUpdateRepeat() {
+  const refresh = useRefreshRepeats()
+  return useMutation({
+    mutationFn: ({ id, changes }: { id: number; changes: RepeatUpdate }) =>
+      updateRepeat(id, changes),
+    onSuccess: refresh,
+  })
+}
+
+export function useDeleteRepeat() {
+  const refresh = useRefreshRepeats()
+  return useMutation({ mutationFn: deleteRepeat, onSuccess: refresh })
 }

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router'
 
 import { useMe } from '../api/hooks'
+import { RepeatList } from '../components/RepeatList'
 import { useAuth } from '../useAuth'
 
 export function SettingsPage() {
@@ -33,6 +34,7 @@ export function SettingsPage() {
           </div>
         </dl>
       )}
+      <RepeatList />
       <button type="button" className="secondary" onClick={handleLogOut} disabled={busy}>
         {busy ? 'Logging out…' : 'Log out'}
       </button>
