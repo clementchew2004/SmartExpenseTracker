@@ -1,7 +1,7 @@
 import datetime
 from decimal import Decimal
 
-from sqlalchemy import DateTime, ForeignKey, Numeric, String, func
+from sqlalchemy import DateTime, ForeignKey, Numeric, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -73,3 +73,39 @@ class Expense(Base):
     updated_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+
+class DefaultBudget(Base):
+    """Your usual monthly budget in one currency; used for any month without its own."""
+
+    __tablename__ = "default_budgets"
+    # One default per currency: a second GBP default is refused by the database.
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id", "currency", name="uq_default_budgets_user_currency"
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    currency: Mapped[str] = mapped_column(String(3))
+    amount: Mapped[Decimal] = mapped_column(Numeric(12, 2))
+
+
+class Budget(Base):
+    """One month's own budget in one currency; replaces the default for that month."""
+
+    __tablename__ = "budgets"
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id", "month", "currency", name="uq_budgets_user_month_currency"
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    # Always the 1st of the month (2026-10-01 = October 2026), so it's a real date
+    # that SQL can compare, not a "2026-10" string.
+    month: Mapped[datetime.date]
+    currency: Mapped[str] = mapped_column(String(3))
+    amount: Mapped[Decimal] = mapped_column(Numeric(12, 2))

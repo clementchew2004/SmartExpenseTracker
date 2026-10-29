@@ -59,7 +59,8 @@ def anon_client(engine: Engine) -> Iterator[TestClient]:
         # Every table, emptied before each test; CASCADE follows the foreign keys.
         conn.execute(
             text(
-                "TRUNCATE expenses, refresh_tokens, invite_codes, users "
+                "TRUNCATE budgets, default_budgets, expenses, refresh_tokens, "
+                "invite_codes, users "
                 "RESTART IDENTITY CASCADE"
             )
         )

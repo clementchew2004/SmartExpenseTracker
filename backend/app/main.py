@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
-from app.routers import auth, expenses, parse, stats
+from app.routers import auth, budgets, expenses, parse, stats
 
 # Without a handler, Python only prints WARNING and above, so the LLM client's
 # token/duration INFO lines were silently dropped. Libraries stay at WARNING.
@@ -25,6 +25,7 @@ app.include_router(auth.router)
 app.include_router(expenses.router)
 app.include_router(stats.router)
 app.include_router(parse.router)
+app.include_router(budgets.router)
 
 
 @app.get("/health")

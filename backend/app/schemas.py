@@ -109,3 +109,30 @@ class TokenResponse(BaseModel):
 
     access_token: str
     token_type: str = "bearer"
+
+
+# --- Budgets ---
+
+
+class BudgetAmount(BaseModel):
+    """Body for setting a budget: just the amount (currency is in the URL)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    amount: Amount  # > 0, at most 2 decimal places
+
+
+class BudgetStatus(BaseModel):
+    currency: Currency
+    amount: Decimal  # the budget that applies this month
+    source: Literal["month", "default"]  # this month's own amount, or your usual one
+    spent: Decimal  # SQL total of this month's expenses in this currency
+    outlook: Literal[
+        "upcoming", "too_early", "on_track", "likely_over", "over", "under"
+    ]
+
+
+class MonthBudgets(BaseModel):
+    month: str
+    budgets: list[BudgetStatus]  # only currencies that have a budget
+    defaults: dict[Currency, Decimal]  # your usual amounts; empty = not set up yet
