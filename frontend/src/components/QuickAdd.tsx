@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 
-import type { Currency, ExpenseCreate } from '../api/client'
-import { useCreateExpense, useCreateRepeat, useParseText } from '../api/hooks'
+import type { Currency, ExpenseCreate, ParseResult } from '../api/client'
+import { useCreateExpense, useCreateRepeat, useParseReceipt, useParseText } from '../api/hooks'
 import { FREQUENCY_LABEL, formatMoney } from '../api/options'
 import { ExpenseCard } from './ExpenseCard'
 import type { RepeatChoice } from './RepeatOptions'
@@ -32,18 +32,23 @@ export function QuickAdd({ onSaved }: Props) {
   const [drafts, setDrafts] = useState<Draft[]>([])
   const [notice, setNotice] = useState<Notice | null>(null)
   const parse = useParseText()
+  const receipt = useParseReceipt()
+  // One "reading" state for both: only one can run at a time.
+  const reading = parse.isPending || receipt.isPending
+  const readError = parse.error ?? receipt.error
   const save = useCreateExpense()
   const createRepeat = useCreateRepeat()
   const inputRef = useRef<HTMLInputElement>(null)
+  const photoRef = useRef<HTMLInputElement>(null)
   const savedThisRound = useRef(false)
 
   // Most parses take 1-2s; if one is still going after 4s, say so instead of looking stuck.
   const [slow, setSlow] = useState(false)
   useEffect(() => {
-    if (!parse.isPending) return
+    if (!reading) return
     const timer = setTimeout(() => setSlow(true), 4000)
     return () => clearTimeout(timer)
-  }, [parse.isPending])
+  }, [reading])
 
   // Hide the "Saved…" / "Discarded… Undo" bar after a few seconds.
   useEffect(() => {
@@ -60,26 +65,46 @@ export function QuickAdd({ onSaved }: Props) {
     hadDrafts.current = drafts.length > 0
   }, [drafts])
 
-  function handleSubmit(event: FormEvent) {
-    event.preventDefault()
-    if (!text.trim() || parse.isPending) return
+  /** Clear the last attempt before reading a new sentence or photo. */
+  function startReading() {
     setNotice(null)
     setSlow(false)
     savedThisRound.current = false
-    parse.mutate(text, {
-      onSuccess: (result) =>
-        setDrafts(
-          result.expenses.map((parsed) => ({
-            id: String(++nextDraftId),
-            // The API only returns parsed expenses that have an amount.
-            expense: { ...parsed, amount: parsed.amount ?? '' },
-            repeat: null,
-            editing: false,
-            saving: false,
-            error: null,
-          })),
-        ),
-    })
+    parse.reset()
+    receipt.reset()
+  }
+
+  /** Parsed expenses become cards to check. Nothing is saved yet. */
+  function showCards(result: ParseResult) {
+    setDrafts(
+      result.expenses.map((parsed) => ({
+        id: String(++nextDraftId),
+        expense: { ...parsed, amount: parsed.amount ?? '' },
+        repeat: null,
+        // A receipt whose total couldn't be read opens with the amount box ready to fill.
+        editing: parsed.amount === null,
+        saving: false,
+        error: null,
+      })),
+    )
+    if (result.expenses.some((e) => e.amount === null)) {
+      setNotice({ text: "Couldn't read the total - type it into the card" })
+    }
+  }
+
+  function handleSubmit(event: FormEvent) {
+    event.preventDefault()
+    if (!text.trim() || reading) return
+    startReading()
+    parse.mutate(text, { onSuccess: showCards })
+  }
+
+  function handlePhoto(photo: File | undefined) {
+    // Empty the picker so choosing the same photo again still counts as a change.
+    if (photoRef.current) photoRef.current.value = ''
+    if (!photo || reading) return
+    startReading()
+    receipt.mutate(photo, { onSuccess: showCards })
   }
 
   // All updates are functional (setDrafts(current => ...)) so overlapping saves and
@@ -174,10 +199,12 @@ export function QuickAdd({ onSaved }: Props) {
   }
 
   return (
-    <section className="quick-add" aria-label="Add an expense" aria-busy={parse.isPending}>
+    <section className="quick-add" aria-label="Add an expense" aria-busy={reading}>
       {/* Screen readers hear the wait start, and hear if it is taking a while. */}
       <p className="visually-hidden" role="status">
-        {parse.isPending ? (slow ? 'Still reading your expense' : 'Reading your expense') : ''}
+        {reading
+          ? `${slow ? 'Still reading' : 'Reading'} your ${receipt.isPending ? 'receipt' : 'expense'}`
+          : ''}
       </p>
       <form onSubmit={handleSubmit}>
         <label htmlFor="expense-text" className="visually-hidden">
@@ -194,23 +221,44 @@ export function QuickAdd({ onSaved }: Props) {
             onChange={(e) => setText(e.target.value)}
             maxLength={500}
           />
-          <button type="submit" disabled={!text.trim() || parse.isPending}>
+          <button type="submit" disabled={!text.trim() || reading}>
             {parse.isPending ? 'Reading…' : 'Parse'}
           </button>
+          {/* No `capture` attribute: phones then offer both Take Photo and Photo Library. */}
+          <input
+            ref={photoRef}
+            type="file"
+            accept="image/jpeg,image/png,image/heic,image/heif"
+            className="visually-hidden"
+            tabIndex={-1}
+            aria-hidden="true"
+            onChange={(e) => handlePhoto(e.target.files?.[0])}
+          />
+          <button
+            type="button"
+            className="secondary icon-button"
+            aria-label={receipt.isPending ? 'Reading receipt' : 'Scan a receipt'}
+            title="Scan a receipt"
+            disabled={reading}
+            onClick={() => photoRef.current?.click()}
+          >
+            <CameraIcon />
+          </button>
         </div>
-        {/* Parse errors sit under the box; the sentence stays so it can be fixed. */}
-        {parse.isError && (
+        {/* Errors sit under the box; the sentence stays so it can be fixed. */}
+        {readError && (
           <p className="error" role="alert">
-            {parse.error.message}
+            {readError.message}
           </p>
         )}
-        {parse.isPending && slow && (
+        {receipt.isPending && <p className="muted waiting-note">Reading your receipt…</p>}
+        {reading && slow && (
           <p className="muted waiting-note">Still working - the AI is slower than usual.</p>
         )}
       </form>
 
       {/* A placeholder card where the real ones will appear. */}
-      {parse.isPending && (
+      {reading && (
         <div className="card skeleton" aria-hidden="true">
           <span className="skeleton-line skeleton-amount" />
           <span className="skeleton-line" />
@@ -256,5 +304,24 @@ export function QuickAdd({ onSaved }: Props) {
         </button>
       )}
     </section>
+  )
+}
+
+function CameraIcon() {
+  return (
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" />
+      <circle cx="12" cy="13.5" r="3.5" />
+    </svg>
   )
 }

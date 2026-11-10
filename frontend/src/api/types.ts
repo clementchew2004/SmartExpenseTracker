@@ -175,6 +175,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/parse/receipt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Parse Receipt Photo
+         * @description Read a receipt photo into one expense for the user to review.
+         *
+         *     Saves nothing, and the photo is never stored: it only lives in memory for
+         *     this request.
+         */
+        post: operations["parse_receipt_photo_parse_receipt_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/budgets": {
         parameters: {
             query?: never;
@@ -393,6 +416,11 @@ export interface components {
              * Format: password
              */
             client_secret?: string | null;
+        };
+        /** Body_parse_receipt_photo_parse_receipt_post */
+        Body_parse_receipt_photo_parse_receipt_post: {
+            /** Receipt */
+            receipt: string;
         };
         /**
          * BudgetAmount
@@ -1145,6 +1173,39 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["ParseTextRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ParseResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    parse_receipt_photo_parse_receipt_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_parse_receipt_photo_parse_receipt_post"];
             };
         };
         responses: {

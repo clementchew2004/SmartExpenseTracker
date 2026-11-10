@@ -139,3 +139,26 @@ def test_real_client_has_sdk_retries_turned_off():
 
     assert client.sdk.max_retries == 0
     assert client.sdk.timeout == 30
+
+
+def test_image_is_sent_as_a_base64_data_url():
+    client, sdk, _ = make_client([ok_response('{"expenses": []}')])
+
+    reply = client.complete_with_image("Reply in JSON.", b"\xff\xd8\xffjpeg")
+
+    assert reply == '{"expenses": []}'
+    content = sdk.calls[0]["messages"][1]["content"]
+    image = next(part for part in content if part["type"] == "image_url")
+    # base64 of the bytes above, inside the request itself (not a link)
+    assert image["image_url"]["url"] == "data:image/jpeg;base64,/9j/anBlZw=="
+    assert sdk.calls[0]["response_format"] == {"type": "json_object"}
+
+
+def test_image_calls_share_the_retry_loop():
+    error = status_error(openai.RateLimitError, 429)
+    client, sdk, waits = make_client([error, ok_response()])
+
+    client.complete_with_image("Reply in JSON.", b"jpeg")
+
+    assert len(sdk.calls) == 2
+    assert waits == [1]

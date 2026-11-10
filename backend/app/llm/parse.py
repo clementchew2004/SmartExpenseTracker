@@ -1,11 +1,16 @@
 import datetime
+from collections.abc import Callable
 
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 from app.llm.client import LLMClient
 from app.llm.dates import resolve_weekday
-from app.llm.prompts import DEFAULT_CURRENCY, build_parse_prompt
-from app.schemas import Currency, ParsedExpense, ParseResult
+from app.llm.prompts import (
+    DEFAULT_CURRENCY,
+    build_parse_prompt,
+    build_receipt_prompt,
+)
+from app.schemas import Currency, ParsedExpense, ParseResult, ReceiptReply
 
 MAX_EXPENSES = 10
 
@@ -40,26 +45,22 @@ class TooManyExpensesError(UserInputError):
     pass
 
 
+class NotAReceiptError(UserInputError):
+    pass
+
+
 def parse_expense_text(
     text: str,
     llm: LLMClient,
     today: datetime.date,
     default_currency: Currency = DEFAULT_CURRENCY,
 ) -> list[ParsedExpense]:
-    system_prompt = build_parse_prompt(today, default_currency)
-
-    reply = llm.complete(system_prompt, text)
-    try:
-        result = ParseResult.model_validate_json(reply)
-    except ValidationError as first_error:
-        # The model made a mistake: retry once, telling it exactly what was wrong.
-        reply = llm.complete(system_prompt + rejection_note(first_error), text)
-        try:
-            result = ParseResult.model_validate_json(reply)
-        except ValidationError as second_error:
-            raise ExpenseParseError(
-                "Couldn't understand that expense - try rephrasing it"
-            ) from second_error
+    result = ask_and_validate(
+        lambda prompt: llm.complete(prompt, text),
+        build_parse_prompt(today, default_currency),
+        ParseResult,
+        "Couldn't understand that expense - try rephrasing it",
+    )
 
     # Weekday dates are arithmetic, so code works them out, not the model.
     for expense in result.expenses:
@@ -70,6 +71,55 @@ def parse_expense_text(
     # The model did its job; now check what it found in the user's text.
     check_user_input(result.expenses)
     return result.expenses
+
+
+def parse_receipt(
+    jpeg: bytes,
+    llm: LLMClient,
+    today: datetime.date,
+    default_currency: Currency = DEFAULT_CURRENCY,
+) -> list[ParsedExpense]:
+    """Read a receipt photo (already checked by images.prepare_receipt).
+
+    Unlike text, a missing total isn't an error: like a passport scanner,
+    the card shows what was read and you fill in the amount box yourself.
+    """
+    result = ask_and_validate(
+        lambda prompt: llm.complete_with_image(prompt, jpeg),
+        build_receipt_prompt(today, default_currency),
+        ReceiptReply,
+        "Couldn't read that receipt - try another photo or type it instead",
+    )
+
+    if not result.expenses:
+        raise NotAReceiptError(
+            "That doesn't look like a receipt - try a clear photo of the whole receipt"
+        )
+    expense = result.expenses[0]
+    if expense.amount is not None and expense.amount <= 0:
+        raise InvalidAmountError(
+            f"The total on that receipt is {expense.amount} - "
+            "amounts must be more than 0 (refunds aren't supported yet)"
+        )
+    return result.expenses
+
+
+def ask_and_validate[Reply: BaseModel](
+    ask: Callable[[str], str],
+    system_prompt: str,
+    reply_model: type[Reply],
+    failure_message: str,
+) -> Reply:
+    """Call the model and validate its JSON. On a model mistake, retry once,
+    telling it exactly what was wrong; after that, give up cleanly."""
+    try:
+        return reply_model.model_validate_json(ask(system_prompt))
+    except ValidationError as first_error:
+        retry_prompt = system_prompt + rejection_note(first_error)
+        try:
+            return reply_model.model_validate_json(ask(retry_prompt))
+        except ValidationError as second_error:
+            raise ExpenseParseError(failure_message) from second_error
 
 
 def check_user_input(expenses: list[ParsedExpense]) -> None:

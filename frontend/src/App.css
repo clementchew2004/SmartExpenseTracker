@@ -84,6 +84,14 @@ select {
   white-space: nowrap;
 }
 
+/* The camera button: square, beside Parse. */
+.input-row .icon-button {
+  flex: 0 0 44px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+}
+
 .waiting-note {
   margin: 8px 0 0;
   font-size: 0.9375rem;

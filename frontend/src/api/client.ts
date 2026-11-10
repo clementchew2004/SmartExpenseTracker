@@ -96,7 +96,10 @@ export function refreshAccessToken(): Promise<boolean> {
 type RequestOptions = {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
   body?: unknown
-  form?: URLSearchParams // login is an OAuth2 form, not JSON
+  // Login is an OAuth2 form, and a receipt photo is a file upload: neither is JSON.
+  // No Content-Type is set for these, so the browser writes the right one itself
+  // (for a file, multipart/form-data plus the boundary that separates the parts).
+  form?: URLSearchParams | FormData
 }
 
 // A 401 from these means "wrong password" or "session over", never "token
@@ -143,6 +146,13 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 
 export function parseText(text: string): Promise<ParseResult> {
   return request('/parse/text', { method: 'POST', body: { text } })
+}
+
+/** Receipt photo -> one parsed expense. Saves nothing, and the server keeps no copy. */
+export function parseReceipt(photo: File): Promise<ParseResult> {
+  const form = new FormData()
+  form.append('receipt', photo) // the name must match the route's `receipt: UploadFile`
+  return request('/parse/receipt', { method: 'POST', form })
 }
 
 export function createExpense(expense: ExpenseCreate): Promise<ExpenseRead> {

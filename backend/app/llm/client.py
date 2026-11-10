@@ -1,3 +1,4 @@
+import base64
 import logging
 import time
 from collections.abc import Callable
@@ -42,6 +43,24 @@ class LLMClient:
 
         JSON mode requires the word "JSON" to appear in the prompt.
         """
+        return self._send(system_prompt, user_message)
+
+    def complete_with_image(self, system_prompt: str, jpeg: bytes) -> str:
+        """Like complete(), but the user's message is a photo.
+
+        The image travels inside the request as base64 text (a "data URL"),
+        not as a link: our receipts aren't on the public internet for OpenAI
+        to fetch, and shouldn't be.
+        """
+        data_url = "data:image/jpeg;base64," + base64.b64encode(jpeg).decode()
+        content = [
+            {"type": "text", "text": "Here is the receipt."},
+            # "high" detail reads small print; it costs more tokens than "low".
+            {"type": "image_url", "image_url": {"url": data_url, "detail": "high"}},
+        ]
+        return self._send(system_prompt, content)
+
+    def _send(self, system_prompt: str, user_content: str | list[dict]) -> str:
         started = time.perf_counter()  # includes any retries and backoff waits
         for attempt in range(MAX_RETRIES + 1):
             try:
@@ -49,7 +68,7 @@ class LLMClient:
                     model=self.model,
                     messages=[
                         {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_message},
+                        {"role": "user", "content": user_content},
                     ],
                     response_format={"type": "json_object"},
                     temperature=0,  # consistent answers: extraction, not creativity

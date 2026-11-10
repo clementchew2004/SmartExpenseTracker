@@ -74,6 +74,14 @@ class ParseResult(BaseModel):
     expenses: list[ParsedExpense]
 
 
+class ReceiptReply(BaseModel):
+    """The model's reply for a receipt: one expense (the total), or none if
+    the photo isn't a receipt. A second entry is a model mistake, so it fails
+    validation and triggers the retry."""
+
+    expenses: Annotated[list[ParsedExpense], Field(max_length=1)]
+
+
 class MonthlyStats(BaseModel):
     month: str
     totals: dict[Currency, dict[Category, Decimal]]

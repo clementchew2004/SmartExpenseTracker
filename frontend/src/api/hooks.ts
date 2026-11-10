@@ -17,6 +17,7 @@ import {
   getMe,
   getMonthlyStats,
   listExpenses,
+  parseReceipt,
   parseText,
   setDefaultBudget,
   setMonthBudget,
@@ -55,6 +56,11 @@ export function useMe() {
 /** Sentence -> parsed expenses. Saves nothing. */
 export function useParseText() {
   return useMutation({ mutationFn: parseText })
+}
+
+/** Receipt photo -> one parsed expense. Saves nothing. */
+export function useParseReceipt() {
+  return useMutation({ mutationFn: parseReceipt })
 }
 
 /** After any change, refetch everything built from expenses: the list and the chart. */
