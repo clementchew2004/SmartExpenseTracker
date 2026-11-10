@@ -239,3 +239,56 @@ class RepeatSkip(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     due_date: datetime.date
+
+
+# --- Weekly summary ---
+
+
+class MerchantTotal(BaseModel):
+    merchant: str
+    spent: Decimal
+
+
+class CurrencyWeek(BaseModel):
+    """One currency's week. Every number is worked out in code before the LLM
+    sees it; the LLM only puts them into sentences."""
+
+    currency: Currency
+    spent: Decimal
+    # The same days of the week before (Mon-Wed vs Mon-Wed while a week is in
+    # progress). None in your first week, when there's nothing to compare with.
+    previous: Decimal | None
+    change: Decimal | None  # spent - previous
+    change_pct: int | None  # None if there's no previous, or it was 0
+    # The budget of the month whose list this is (a week crossing two months
+    # shows a different share in each list). None if that currency has no budget.
+    budget: Decimal | None
+    budget_share_pct: int | None
+    top_merchants: list[MerchantTotal]
+
+
+class WeekFacts(BaseModel):
+    week_start: datetime.date  # always a Monday
+    week_end: datetime.date  # always a Sunday
+    in_progress: bool
+    days_counted: int  # 7, or the days so far (Mon..today) for this week
+    # What "previous" covers, in words the summary copies as-is - so the model
+    # can't call last Mon-Tue "last week". None in your first week.
+    compared_with: str | None
+    currencies: list[CurrencyWeek]
+
+
+class WeekSummary(WeekFacts):
+    # None if the AI couldn't write one right now; the numbers still show.
+    summary: str | None
+
+
+class WeeklyInsights(BaseModel):
+    month: str
+    weeks: list[WeekSummary]  # newest first
+
+
+class SummaryReply(BaseModel):
+    """What the LLM must send back for a summary."""
+
+    summary: Annotated[str, Field(min_length=1, max_length=600)]

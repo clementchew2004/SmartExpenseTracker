@@ -21,18 +21,11 @@ from app.schemas import (
     RepeatUpdate,
 )
 from app.services.repeats import due_dates, following, is_finished
+from app.today import Today, get_today  # noqa: F401 (tests override get_today)
 
 router = APIRouter(prefix="/repeats", tags=["repeats"])
 
 DbSession = Annotated[Session, Depends(get_db)]
-
-
-def get_today() -> datetime.date:
-    """A dependency, so tests can swap in a fixed date (like they swap get_db)."""
-    return datetime.date.today()
-
-
-Today = Annotated[datetime.date, Depends(get_today)]
 
 
 def find_repeat(db: Session, repeat_id: int, user_id: int) -> RepeatingExpense:

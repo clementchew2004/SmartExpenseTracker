@@ -1,7 +1,16 @@
 import datetime
 from decimal import Decimal
 
-from sqlalchemy import DateTime, ForeignKey, Numeric, String, UniqueConstraint, func
+from sqlalchemy import (
+    JSON,
+    DateTime,
+    ForeignKey,
+    Numeric,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -134,4 +143,29 @@ class RepeatingExpense(Base):
     end_date: Mapped[datetime.date | None]  # empty = until you stop it
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class WeeklySummary(Base):
+    """An AI-written summary of one week, kept with the numbers it was written
+    from. Opening the app recomputes the numbers (cheap SQL); only if they
+    changed is the (paid) LLM asked again."""
+
+    __tablename__ = "weekly_summaries"
+    # Per month too: a week crossing two months has a different budget share
+    # in each month's list, so it gets a summary in each.
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id", "month", "week_start", name="uq_weekly_summaries_user_month_week"
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    month: Mapped[datetime.date]  # always a 1st, like budgets
+    week_start: Mapped[datetime.date]  # always a Monday
+    facts: Mapped[dict] = mapped_column(JSON)
+    text: Mapped[str] = mapped_column(Text)
+    updated_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
