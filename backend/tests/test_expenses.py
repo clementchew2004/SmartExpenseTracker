@@ -169,3 +169,65 @@ def test_delete_missing_expense_returns_404(client):
     response = client.delete("/expenses/999")
 
     assert response.status_code == 404
+
+
+# --- Where an expense came from ---
+
+TEA = {
+    "amount": "4.50",
+    "currency": "GBP",
+    "date": "2026-10-15",
+    "merchant": "Bubble tea",
+    "category": "Food",
+}
+
+
+def test_plain_save_is_manual_with_no_raw_input(client):
+    created = client.post("/expenses", json=TEA).json()
+
+    assert created["source"] == "manual"
+    assert created["raw_input"] is None
+
+
+@pytest.mark.parametrize(
+    ("source", "raw_input"),
+    [("text", "4.50 bubble tea yesterday"), ("receipt", "receipt")],
+)
+def test_save_records_the_source_and_raw_input(client, source, raw_input):
+    body = TEA | {"source": source, "raw_input": raw_input}
+
+    created = client.post("/expenses", json=body).json()
+
+    stored = client.get(f"/expenses/{created['id']}").json()
+    assert stored["source"] == source
+    assert stored["raw_input"] == raw_input
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [{"source": "repeat"}, {"source": "magic"}, {"raw_input": "x" * 501}],
+    ids=["repeat-is-server-only", "unknown", "raw-input-too-long"],
+)
+def test_save_rejects_bad_source_fields(client, bad):
+    response = client.post("/expenses", json=TEA | bad)
+
+    assert response.status_code == 422
+    assert client.get("/expenses").json() == []
+
+
+@pytest.mark.parametrize("field", ["source", "raw_input"])
+def test_editing_cannot_change_where_it_came_from(client, field):
+    created = client.post("/expenses", json=TEA | {"source": "receipt"}).json()
+
+    response = client.patch(f"/expenses/{created['id']}", json={field: "manual"})
+
+    assert response.status_code == 422
+    assert client.get(f"/expenses/{created['id']}").json()["source"] == "receipt"
+
+
+def test_edited_expense_keeps_its_source(client):
+    created = client.post("/expenses", json=TEA | {"source": "text"}).json()
+
+    edited = client.patch(f"/expenses/{created['id']}", json={"amount": "5.00"}).json()
+
+    assert edited["source"] == "text"

@@ -4,7 +4,10 @@ import type { components } from './types'
 type Schemas = components['schemas']
 export type ParsedExpense = Schemas['ParsedExpense']
 export type ParseResult = Schemas['ParseResult']
-export type ExpenseCreate = Schemas['ExpenseCreate']
+// The generator marks fields that have a default as required; in a request they can be
+// left out (the API then uses 'manual'), e.g. reminder and edit forms never send one.
+export type ExpenseCreate = Omit<Schemas['ExpenseCreate'], 'source'> &
+  Partial<Pick<Schemas['ExpenseCreate'], 'source'>>
 export type ExpenseRead = Schemas['ExpenseRead']
 export type ExpenseUpdate = Schemas['ExpenseUpdate']
 export type MonthlyStats = Schemas['MonthlyStats']

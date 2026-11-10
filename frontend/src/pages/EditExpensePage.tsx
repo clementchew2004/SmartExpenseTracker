@@ -31,7 +31,8 @@ export function EditExpensePage({ onDelete }: Props) {
 }
 
 function EditForm({ expense, onDelete }: { expense: ExpenseRead; onDelete: Props['onDelete'] }) {
-  const { id, ...fields } = expense
+  // Where it came from is fixed once saved, so only the editable fields go in the form.
+  const { id, source: _source, raw_input: _rawInput, ...fields } = expense
   const [draft, setDraft] = useState<ExpenseCreate>({ ...fields, note: fields.note ?? null })
   const [confirming, setConfirming] = useState(false)
   const update = useUpdateExpense()

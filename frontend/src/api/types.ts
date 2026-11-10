@@ -512,6 +512,14 @@ export interface components {
             category: "Food" | "Groceries" | "Transport" | "Shopping" | "Subscriptions" | "Entertainment" | "Bills" | "Health" | "Travel" | "Other";
             /** Note */
             note?: string | null;
+            /**
+             * Source
+             * @default manual
+             * @enum {string}
+             */
+            source: "manual" | "text" | "receipt";
+            /** Raw Input */
+            raw_input?: string | null;
         };
         /** ExpenseRead */
         ExpenseRead: {
@@ -538,6 +546,13 @@ export interface components {
             note?: string | null;
             /** Id */
             id: number;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "manual" | "text" | "receipt" | "repeat";
+            /** Raw Input */
+            raw_input: string | null;
         };
         /** ExpenseUpdate */
         ExpenseUpdate: {

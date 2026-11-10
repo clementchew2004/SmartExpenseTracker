@@ -22,7 +22,10 @@ Amount = Annotated[Decimal, Field(gt=0, max_digits=12, decimal_places=2)]
 Merchant = Annotated[str, Field(min_length=1, max_length=100)]
 
 
-class ExpenseCreate(BaseModel):
+class ExpenseBase(BaseModel):
+    """The fields every expense has. Repeats reuse these, but not `source`:
+    the server labels repeat copies itself."""
+
     model_config = ConfigDict(extra="forbid")
 
     amount: Amount
@@ -33,9 +36,23 @@ class ExpenseCreate(BaseModel):
     note: str | None = None
 
 
-class ExpenseRead(ExpenseCreate):
+# Where an expense came from. Only the browser knows (parsing and saving are
+# separate requests), so it says - but never "repeat", which only the server sets.
+ClientSource = Literal["manual", "text", "receipt"]
+Source = Literal["manual", "text", "receipt", "repeat"]
+
+
+class ExpenseCreate(ExpenseBase):
+    source: ClientSource = "manual"
+    # What you typed, kept for building eval cases later; "receipt" for photos.
+    raw_input: Annotated[str, Field(max_length=500)] | None = None
+
+
+class ExpenseRead(ExpenseBase):
     model_config = ConfigDict(from_attributes=True)
     id: int
+    source: Source
+    raw_input: str | None
 
 
 class ExpenseUpdate(BaseModel):
@@ -151,7 +168,7 @@ class MonthBudgets(BaseModel):
 Frequency = Literal["daily", "weekly", "monthly"]
 
 
-class RepeatCreate(ExpenseCreate):
+class RepeatCreate(ExpenseBase):
     """Repeat an expense you just saved. `date` is that first expense's date;
     the first reminder is the date after it (e.g. a month later)."""
 
@@ -211,7 +228,7 @@ class DueReminder(BaseModel):
     note: str | None
 
 
-class RepeatSave(ExpenseCreate):
+class RepeatSave(ExpenseBase):
     """Save a reminder: the card's (possibly edited) expense, plus which due
     date it's for, so the same card can never be saved twice."""
 

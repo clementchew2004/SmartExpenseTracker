@@ -74,12 +74,16 @@ export function QuickAdd({ onSaved }: Props) {
     receipt.reset()
   }
 
-  /** Parsed expenses become cards to check. Nothing is saved yet. */
-  function showCards(result: ParseResult) {
+  /**
+   * Parsed expenses become cards to check. Nothing is saved yet. Each card
+   * remembers how it was made, because the save request is the only time the
+   * server hears about it.
+   */
+  function showCards(result: ParseResult, origin: Pick<ExpenseCreate, 'source' | 'raw_input'>) {
     setDrafts(
       result.expenses.map((parsed) => ({
         id: String(++nextDraftId),
-        expense: { ...parsed, amount: parsed.amount ?? '' },
+        expense: { ...parsed, amount: parsed.amount ?? '', ...origin },
         repeat: null,
         // A receipt whose total couldn't be read opens with the amount box ready to fill.
         editing: parsed.amount === null,
@@ -96,7 +100,10 @@ export function QuickAdd({ onSaved }: Props) {
     event.preventDefault()
     if (!text.trim() || reading) return
     startReading()
-    parse.mutate(text, { onSuccess: showCards })
+    const sentence = text.trim()
+    parse.mutate(sentence, {
+      onSuccess: (result) => showCards(result, { source: 'text', raw_input: sentence }),
+    })
   }
 
   function handlePhoto(photo: File | undefined) {
@@ -104,7 +111,9 @@ export function QuickAdd({ onSaved }: Props) {
     if (photoRef.current) photoRef.current.value = ''
     if (!photo || reading) return
     startReading()
-    receipt.mutate(photo, { onSuccess: showCards })
+    receipt.mutate(photo, {
+      onSuccess: (result) => showCards(result, { source: 'receipt', raw_input: 'receipt' }),
+    })
   }
 
   // All updates are functional (setDrafts(current => ...)) so overlapping saves and
@@ -145,9 +154,11 @@ export function QuickAdd({ onSaved }: Props) {
 
     // The expense is saved; now set up its repeat (the expense's date is the first one).
     if (repeat) {
+      // A repeat's future copies are labelled by the server, so these stay behind.
+      const { source: _source, raw_input: _rawInput, ...fields } = draft.expense
       try {
         await createRepeat.mutateAsync({
-          ...draft.expense,
+          ...fields,
           frequency: repeat.frequency,
           end_date: repeat.end_date || null,
         })

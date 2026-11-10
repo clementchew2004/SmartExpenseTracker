@@ -294,3 +294,21 @@ def test_a_cannot_see_or_act_on_bs_repeats(make_user, client_for):
     assert a.patch(f"/repeats/{rent['id']}", json={"amount": "1.00"}).status_code == 404
     assert a.delete(f"/repeats/{rent['id']}").status_code == 404
     assert b.get("/repeats/due").json() == [card]  # B's reminder untouched
+
+
+def test_saved_reminder_is_labelled_repeat_by_the_server(client):
+    make_repeat(client)
+    [reminder] = client.get("/repeats/due").json()
+
+    saved = save(client, reminder).json()
+
+    assert saved["source"] == "repeat"
+
+
+def test_reminder_save_cannot_set_its_own_source(client):
+    make_repeat(client)
+    [reminder] = client.get("/repeats/due").json()
+
+    response = save(client, reminder, source="text")
+
+    assert response.status_code == 422
