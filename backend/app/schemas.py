@@ -272,15 +272,21 @@ class WeekFacts(BaseModel):
     week_end: datetime.date  # always a Sunday
     in_progress: bool
     days_counted: int  # 7, or the days so far (Mon..today) for this week
-    # What "previous" covers, in words the summary copies as-is - so the model
-    # can't call last Mon-Tue "last week". None in your first week.
+    # What "previous" covers, in words written by code ("the same 2 days last
+    # week") for the card to show as-is. None in your first week.
     compared_with: str | None
     currencies: list[CurrencyWeek]
 
 
 class WeekSummary(WeekFacts):
-    # None if the AI couldn't write one right now; the numbers still show.
+    # A saved sentence that still matches these numbers, else None: the list
+    # never calls the AI. Tapping the card asks for one (WeekSentence).
     summary: str | None
+
+
+class WeekSentence(BaseModel):
+    week_start: datetime.date
+    summary: str
 
 
 class WeeklyInsights(BaseModel):
@@ -291,4 +297,6 @@ class WeeklyInsights(BaseModel):
 class SummaryReply(BaseModel):
     """What the LLM must send back for a summary."""
 
-    summary: Annotated[str, Field(min_length=1, max_length=600)]
+    # One short sentence: a longer reply counts as a model mistake and is
+    # retried once. The prompt asks for brevity; this guarantees it.
+    summary: Annotated[str, Field(min_length=1, max_length=160)]

@@ -5,6 +5,7 @@ import pytest
 
 from app.llm.client import LLMError, get_llm_client
 from app.main import app
+from app.routers import insights
 from app.services.weekly import monday_of, percent, weeks_in_month
 from app.today import get_today
 
@@ -110,7 +111,7 @@ def test_finished_week_is_compared_with_the_whole_week_before(
     assert gbp(week)["change"] == "20.00"
     assert gbp(week)["change_pct"] == 50
     assert [m["merchant"] for m in gbp(week)["top_merchants"]] == ["Tesco", "Pret"]
-    assert week["summary"].startswith("Summary number")
+    assert week["summary"] is None  # nothing written until you tap
 
 
 def test_this_week_is_compared_with_the_same_days_of_last_week(
@@ -174,38 +175,77 @@ def test_no_budget_means_no_share(client, make_expense, llm):
     assert gbp(weeks(client)["2026-11-02"])["budget_share_pct"] is None
 
 
-def test_a_week_with_no_spending_skips_the_llm(client, llm):
-    week = weeks(client)["2026-11-02"]
+def sentence(client, week_start="2026-11-02", month="2026-11"):
+    return client.get(f"/insights/weekly/{week_start}/summary", params={"month": month})
 
-    assert week["summary"] == "No spending this week."
+
+def test_opening_the_list_never_calls_the_llm(client, make_expense, llm):
+    make_expense(amount="12.00", date="2026-11-04")
+    make_expense(amount="3.00", date="2026-11-10")
+
+    weeks(client)
+
     assert llm.calls == []
 
 
-def test_same_numbers_reuse_the_saved_summary(client, make_expense, llm):
+def test_tapping_writes_the_sentence_and_the_list_then_includes_it(
+    client, make_expense, llm
+):
     make_expense(amount="12.00", date="2026-11-04")
 
-    first = weeks(client)["2026-11-02"]["summary"]
-    second = weeks(client)["2026-11-02"]["summary"]
+    response = sentence(client)
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "week_start": "2026-11-02",
+        "summary": "Summary number 1.",
+    }
+    assert weeks(client)["2026-11-02"]["summary"] == "Summary number 1."
+    assert len(llm.calls) == 1
+
+
+def test_same_numbers_reuse_the_saved_sentence(client, make_expense, llm):
+    make_expense(amount="12.00", date="2026-11-04")
+
+    first = sentence(client).json()["summary"]
+    second = sentence(client).json()["summary"]
 
     assert first == second
     assert len(llm.calls) == 1  # one paid call, then reused
 
 
-def test_changed_numbers_rewrite_the_summary(client, make_expense, llm):
+def test_changed_numbers_make_the_sentence_out_of_date(client, make_expense, llm):
     make_expense(amount="12.00", date="2026-11-04")
-    first = weeks(client)["2026-11-02"]["summary"]
+    sentence(client)
 
     make_expense(amount="3.00", date="2026-11-05")  # e.g. a forgotten expense
-    second = weeks(client)["2026-11-02"]["summary"]
 
-    assert second != first
+    assert weeks(client)["2026-11-02"]["summary"] is None  # old one hidden
+    assert sentence(client).json()["summary"] == "Summary number 2."
     assert llm.calls[-1]["currencies"][0]["spent"] == "15.00"
+
+
+def test_a_new_prompt_version_rewrites_old_sentences(
+    client, make_expense, llm, monkeypatch
+):
+    make_expense(amount="12.00", date="2026-11-04")
+    sentence(client)
+
+    monkeypatch.setattr(insights, "WEEKLY_SUMMARY_PROMPT_VERSION", 99)
+
+    assert weeks(client)["2026-11-02"]["summary"] is None
+    assert sentence(client).json()["summary"] == "Summary number 2."
+
+
+def test_a_week_with_no_spending_skips_the_llm(client, llm):
+    assert sentence(client).json()["summary"] == "No spending this week."
+    assert llm.calls == []
 
 
 def test_the_llm_is_only_sent_the_finished_numbers(client, make_expense, llm):
     make_expense(amount="12.00", date="2026-11-04", note="secret note")
 
-    weeks(client)
+    sentence(client)
 
     sent = llm.calls[0]
     assert set(sent) == {
@@ -219,29 +259,48 @@ def test_the_llm_is_only_sent_the_finished_numbers(client, make_expense, llm):
     assert "secret note" not in json.dumps(sent)
 
 
-def test_llm_failure_still_shows_the_numbers(client, make_expense, llm):
+def test_a_long_reply_is_retried(client, make_expense, llm):
+    make_expense(amount="12.00", date="2026-11-04")
+    replies = iter(
+        [json.dumps({"summary": "word " * 40}), json.dumps({"summary": "Short."})]
+    )
+    llm.complete = lambda system_prompt, user_message: next(replies)
+
+    assert sentence(client).json()["summary"] == "Short."
+
+
+def test_llm_failure_returns_502_and_saves_nothing(client, make_expense, llm):
     llm.fail = True
     make_expense(amount="12.00", date="2026-11-04")
 
-    week = weeks(client)["2026-11-02"]
+    response = sentence(client)
 
-    assert week["summary"] is None
-    assert gbp(week)["spent"] == "12.00"
+    assert response.status_code == 502
+    llm.fail = False  # the next tap tries again, because nothing was saved
+    assert sentence(client).json()["summary"] == "Summary number 2."
 
-    llm.fail = False  # next open tries again, because nothing was saved
-    assert weeks(client)["2026-11-02"]["summary"] is not None
+
+@pytest.mark.parametrize(
+    "week_start",
+    ["2026-11-03", "2026-11-16", "2026-10-19"],
+    ids=["not-a-monday", "future-week", "not-in-the-month"],
+)
+def test_a_week_outside_the_months_list_is_404(client, llm, week_start):
+    assert sentence(client, week_start).status_code == 404
 
 
 def test_another_users_spending_is_never_included(
     client, make_user, client_for, make_expense, llm
 ):
     make_expense(amount="12.00", date="2026-11-04")
+    sentence(client)  # mine, saved
     other = client_for(make_user("other@example.com"))
 
     week = weeks(other)["2026-11-02"]
 
     assert week["currencies"] == []
-    assert week["summary"] == "No spending this week."
+    assert week["summary"] is None  # my saved sentence isn't theirs
+    assert sentence(other).json()["summary"] == "No spending this week."
 
 
 @pytest.mark.parametrize("month", ["2026-13", "November", ""])
@@ -249,6 +308,7 @@ def test_bad_month_returns_422(client, llm, month):
     response = client.get("/insights/weekly", params={"month": month})
 
     assert response.status_code == 422
+    assert sentence(client, month=month).status_code == 422
 
 
 def test_needs_login(anon_client):

@@ -372,6 +372,50 @@ export interface paths {
         patch: operations["update_repeat_repeats__repeat_id__patch"];
         trace?: never;
     };
+    "/insights/weekly": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Weekly
+         * @description Every week touching the month, newest first: numbers only (cheap SQL).
+         *
+         *     Never calls the AI, so it's instant. A week's sentence is included only
+         *     if one was already written for exactly these numbers.
+         */
+        get: operations["weekly_insights_weekly_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/insights/weekly/{week_start}/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Weekly Summary
+         * @description One week's sentence, written when you tap the card (or reused for free
+         *     if its numbers haven't changed since it was written).
+         */
+        get: operations["weekly_summary_insights_weekly__week_start__summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -459,6 +503,32 @@ export interface components {
              * @enum {string}
              */
             outlook: "upcoming" | "too_early" | "on_track" | "likely_over" | "over" | "under";
+        };
+        /**
+         * CurrencyWeek
+         * @description One currency's week. Every number is worked out in code before the LLM
+         *     sees it; the LLM only puts them into sentences.
+         */
+        CurrencyWeek: {
+            /**
+             * Currency
+             * @enum {string}
+             */
+            currency: "GBP" | "MYR";
+            /** Spent */
+            spent: string;
+            /** Previous */
+            previous: string | null;
+            /** Change */
+            change: string | null;
+            /** Change Pct */
+            change_pct: number | null;
+            /** Budget */
+            budget: string | null;
+            /** Budget Share Pct */
+            budget_share_pct: number | null;
+            /** Top Merchants */
+            top_merchants: components["schemas"]["MerchantTotal"][];
         };
         /**
          * DueReminder
@@ -573,6 +643,13 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** MerchantTotal */
+        MerchantTotal: {
+            /** Merchant */
+            merchant: string;
+            /** Spent */
+            spent: string;
         };
         /** MonthBudgets */
         MonthBudgets: {
@@ -828,6 +905,46 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /** WeekSentence */
+        WeekSentence: {
+            /**
+             * Week Start
+             * Format: date
+             */
+            week_start: string;
+            /** Summary */
+            summary: string;
+        };
+        /** WeekSummary */
+        WeekSummary: {
+            /**
+             * Week Start
+             * Format: date
+             */
+            week_start: string;
+            /**
+             * Week End
+             * Format: date
+             */
+            week_end: string;
+            /** In Progress */
+            in_progress: boolean;
+            /** Days Counted */
+            days_counted: number;
+            /** Compared With */
+            compared_with: string | null;
+            /** Currencies */
+            currencies: components["schemas"]["CurrencyWeek"][];
+            /** Summary */
+            summary: string | null;
+        };
+        /** WeeklyInsights */
+        WeeklyInsights: {
+            /** Month */
+            month: string;
+            /** Weeks */
+            weeks: components["schemas"]["WeekSummary"][];
         };
     };
     responses: never;
@@ -1597,6 +1714,70 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RepeatRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    weekly_insights_weekly_get: {
+        parameters: {
+            query: {
+                month: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WeeklyInsights"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    weekly_summary_insights_weekly__week_start__summary_get: {
+        parameters: {
+            query: {
+                month: string;
+            };
+            header?: never;
+            path: {
+                week_start: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WeekSentence"];
                 };
             };
             /** @description Validation Error */

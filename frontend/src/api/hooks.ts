@@ -16,6 +16,8 @@ import {
   getExpense,
   getMe,
   getMonthlyStats,
+  getWeekSentence,
+  getWeeklyInsights,
   listExpenses,
   parseReceipt,
   parseText,
@@ -63,6 +65,26 @@ export function useParseReceipt() {
   return useMutation({ mutationFn: parseReceipt })
 }
 
+/** The month's weekly summaries (numbers from SQL, sentences from the AI). */
+export function useWeeklyInsights(month: string) {
+  return useQuery({
+    queryKey: ['insights', 'weekly', month],
+    queryFn: () => getWeeklyInsights(month),
+  })
+}
+
+/** A week's sentence, fetched only once you tap the card (`enabled`). */
+export function useWeekSentence(weekStart: string, month: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ['insights', 'sentence', month, weekStart],
+    queryFn: () => getWeekSentence(weekStart, month),
+    enabled,
+    // TanStack Query retries failed requests 3 times by default: here each try
+    // could be a paid AI call, so a failure shows a "Try again" button instead.
+    retry: false,
+  })
+}
+
 /** After any change, refetch everything built from expenses: the list and the chart. */
 function useRefreshAfterChange() {
   const queryClient = useQueryClient()
@@ -72,6 +94,8 @@ function useRefreshAfterChange() {
       queryClient.invalidateQueries({ queryKey: ['stats'] }),
       // "Spent" in the budget comes from expenses too, so the bar moves on save.
       queryClient.invalidateQueries({ queryKey: ['budgets'] }),
+      // A week's numbers changed, so the server rewrites that week's summary.
+      queryClient.invalidateQueries({ queryKey: ['insights'] }),
     ])
 }
 

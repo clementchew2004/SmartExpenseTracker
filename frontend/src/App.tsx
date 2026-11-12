@@ -9,6 +9,7 @@ import { MonthlyChart } from './components/MonthlyChart'
 import { QuickAdd } from './components/QuickAdd'
 import { Reminders } from './components/Reminders'
 import { TabBar } from './components/TabBar'
+import { WeeklySummaries } from './components/WeeklySummaries'
 import { useAuth } from './useAuth'
 import { BudgetPage } from './pages/BudgetPage'
 import { EditExpensePage } from './pages/EditExpensePage'
@@ -74,6 +75,10 @@ function LoggedInApp() {
                 {/* Your choice: reminder cards below the chart. */}
                 <ErrorBoundary name="reminders">
                   <Reminders />
+                </ErrorBoundary>
+                {/* Your choice: weekly summaries at the very bottom, following the chart's currency. */}
+                <ErrorBoundary name="weekly summaries">
+                  <WeeklySummaries currency={chartCurrency} />
                 </ErrorBoundary>
               </>
             }

@@ -52,3 +52,15 @@ export function dayLabel(isoDate: string): string {
   const [year, month, day] = isoDate.split('-').map(Number)
   return DAY_LABEL.format(new Date(year, month - 1, day))
 }
+
+const SHORT_DAY = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' })
+
+function localDate(isoDate: string): Date {
+  const [year, month, day] = isoDate.split('-').map(Number)
+  return new Date(year, month - 1, day)
+}
+
+/** "9–15 Nov", or "26 Oct – 1 Nov" across two months. */
+export function weekLabel(start: string, end: string): string {
+  return SHORT_DAY.formatRange(localDate(start), localDate(end))
+}

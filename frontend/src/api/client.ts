@@ -24,6 +24,8 @@ export type RepeatCreate = Schemas['RepeatCreate']
 export type RepeatUpdate = Schemas['RepeatUpdate']
 export type DueReminder = Schemas['DueReminder']
 export type Frequency = RepeatRead['frequency']
+export type WeekSummary = Schemas['WeekSummary']
+export type CurrencyWeek = Schemas['CurrencyWeek']
 
 const API_URL: string = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
@@ -184,6 +186,19 @@ export function deleteExpense(id: number): Promise<void> {
 
 export function getMonthlyStats(month: string): Promise<MonthlyStats> {
   return request(`/stats/monthly?month=${encodeURIComponent(month)}`)
+}
+
+/** Every week touching the month, newest first. Numbers only, so it's instant:
+ * the AI is never called here. */
+export function getWeeklyInsights(month: string): Promise<Schemas['WeeklyInsights']> {
+  return request(`/insights/weekly?month=${encodeURIComponent(month)}`)
+}
+
+/** One week's sentence, written by the AI on first tap and reused after that. */
+export function getWeekSentence(weekStart: string, month: string): Promise<Schemas['WeekSentence']> {
+  return request(
+    `/insights/weekly/${encodeURIComponent(weekStart)}/summary?month=${encodeURIComponent(month)}`,
+  )
 }
 
 // --- Accounts ----------------------------------------------------------------------

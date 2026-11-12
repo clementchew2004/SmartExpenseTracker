@@ -902,3 +902,48 @@ label.checkbox input,
 .repeat-card .muted {
   font-size: 0.9375rem;
 }
+
+/* Weekly summaries: the bottom of the Add page */
+.weekly {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.week-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.week-heading {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.week-numbers {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.week-merchants {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+/* A small text button, left-aligned, still a 44px tap target.
+   button.week-toggle so it outranks the general button.link underline. */
+button.week-toggle {
+  align-self: flex-start;
+  min-height: 44px;
+  padding: 0;
+  text-decoration: none;
+  font-size: 0.9375rem;
+}
+
+.week-text {
+  margin: 0;
+  line-height: 1.5;
+}
