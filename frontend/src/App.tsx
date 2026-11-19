@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Navigate, Route, Routes } from 'react-router'
+import { Navigate, Route, Routes, useLocation } from 'react-router'
 
 import './App.css'
 import type { Currency } from './api/client'
@@ -11,13 +11,14 @@ import { Reminders } from './components/Reminders'
 import { TabBar } from './components/TabBar'
 import { WeeklySummaries } from './components/WeeklySummaries'
 import { useAuth } from './useAuth'
-import { BudgetPage } from './pages/BudgetPage'
 import { EditExpensePage } from './pages/EditExpensePage'
 import { ExpensesPage } from './pages/ExpensesPage'
+import { InsightsPage } from './pages/InsightsPage'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { StartPage } from './pages/StartPage'
+import { useAskChat } from './useAskChat'
 import { useDelayedDelete } from './useDelayedDelete'
 
 function App() {
@@ -55,6 +56,8 @@ function LoggedInApp() {
   const [chartCurrency, setChartCurrency] = useState<Currency>('GBP')
   // Lives here, above the pages, so the Undo bar survives edit page -> list.
   const deletion = useDelayedDelete()
+  // Also up here, so the question chat survives switching tabs.
+  const chat = useAskChat()
 
   return (
     <>
@@ -99,14 +102,9 @@ function LoggedInApp() {
               </ErrorBoundary>
             }
           />
-          <Route
-            path="/budget"
-            element={
-              <ErrorBoundary name="budget">
-                <BudgetPage />
-              </ErrorBoundary>
-            }
-          />
+          <Route path="/insights" element={<InsightsPage chat={chat} />} />
+          {/* The tab's old address (and any ?month= on it) still works. */}
+          <Route path="/budget" element={<RenamedTo path="/insights" />} />
           <Route
             path="/settings"
             element={
@@ -140,6 +138,11 @@ function LoggedInApp() {
       <TabBar />
     </>
   )
+}
+
+function RenamedTo({ path }: { path: string }) {
+  const { search } = useLocation()
+  return <Navigate to={{ pathname: path, search }} replace />
 }
 
 export default App

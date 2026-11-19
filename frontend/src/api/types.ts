@@ -404,12 +404,39 @@ export interface paths {
         };
         /**
          * Weekly Summary
-         * @description One week's sentence, written when you tap the card (or reused for free
-         *     if its numbers haven't changed since it was written).
+         * @description One week's sentence as Server-Sent Events, written when you tap the card.
+         *
+         *     Events are JSON: {"type": "text", "text": "..."} as words arrive, then
+         *     {"type": "done"} once it's checked and saved, or {"type": "error"} with
+         *     nothing saved. A sentence already written for these numbers comes back
+         *     in one "text" event with no AI call.
          */
         get: operations["weekly_summary_insights_weekly__week_start__summary_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/insights/ask": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ask
+         * @description Answer a question about your spending with the agent loop (llm/ask.py).
+         *
+         *     The AI only picks tools and their arguments; code runs fixed SQL, always
+         *     for the logged-in user. Nothing is saved.
+         */
+        post: operations["ask_insights_ask_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -437,6 +464,24 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AskRequest */
+        AskRequest: {
+            /** Question */
+            question: string;
+            /** Currency */
+            currency?: ("GBP" | "MYR") | null;
+        };
+        /** AskResponse */
+        AskResponse: {
+            /** Answer */
+            answer: string | null;
+            /** Needs Currency */
+            needs_currency: ("GBP" | "MYR")[] | null;
+            /** Facts */
+            facts: {
+                [key: string]: unknown;
+            }[];
+        };
         /** Body_login_auth_login_post */
         Body_login_auth_login_post: {
             /** Grant Type */
@@ -905,16 +950,6 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
-        };
-        /** WeekSentence */
-        WeekSentence: {
-            /**
-             * Week Start
-             * Format: date
-             */
-            week_start: string;
-            /** Summary */
-            summary: string;
         };
         /** WeekSummary */
         WeekSummary: {
@@ -1777,7 +1812,40 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["WeekSentence"];
+                    "text/event-stream": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ask_insights_ask_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AskRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AskResponse"];
                 };
             };
             /** @description Validation Error */

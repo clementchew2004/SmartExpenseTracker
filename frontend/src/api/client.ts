@@ -26,6 +26,7 @@ export type DueReminder = Schemas['DueReminder']
 export type Frequency = RepeatRead['frequency']
 export type WeekSummary = Schemas['WeekSummary']
 export type CurrencyWeek = Schemas['CurrencyWeek']
+export type AskResponse = Schemas['AskResponse']
 
 const API_URL: string = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
@@ -199,6 +200,12 @@ export function getMonthlyStats(month: string): Promise<MonthlyStats> {
  * the AI is never called here. */
 export function getWeeklyInsights(month: string): Promise<Schemas['WeeklyInsights']> {
   return request(`/insights/weekly?month=${encodeURIComponent(month)}`)
+}
+
+/** Ask a question about your spending. `currency` is set after you tapped GBP
+ * or MYR; the server then forces it into every lookup. Nothing is saved. */
+export function askQuestion(question: string, currency?: Currency): Promise<AskResponse> {
+  return request('/insights/ask', { method: 'POST', body: { question, currency } })
 }
 
 /**

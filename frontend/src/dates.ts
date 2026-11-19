@@ -54,13 +54,22 @@ export function dayLabel(isoDate: string): string {
 }
 
 const SHORT_DAY = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' })
+const SHORT_MONTH = new Intl.DateTimeFormat('en-GB', { month: 'short', year: 'numeric' })
 
 function localDate(isoDate: string): Date {
   const [year, month, day] = isoDate.split('-').map(Number)
   return new Date(year, month - 1, day)
 }
 
-/** "9–15 Nov", or "26 Oct – 1 Nov" across two months. */
-export function weekLabel(start: string, end: string): string {
+/** "9–15 Nov", or "26 Oct – 1 Nov" across two months; "18 Nov" for one day. */
+export function dateRange(start: string, end: string): string {
   return SHORT_DAY.formatRange(localDate(start), localDate(end))
+}
+
+/** A Monday-Sunday week, e.g. "9–15 Nov". */
+export const weekLabel = dateRange
+
+/** "Sep 2026" for "2026-09". */
+export function shortMonthLabel(key: string): string {
+  return SHORT_MONTH.format(localDate(`${key}-01`))
 }

@@ -33,7 +33,8 @@ const TONE: Record<Outlook, string> = {
   upcoming: 'tone-planned',
 }
 
-/** The Budget tab: one month's budgets per currency, with month arrows. */
+/** Your budget, on the Insights tab under the questions: one month's budgets
+ * per currency, with month arrows. */
 export function BudgetPage() {
   const [params, setParams] = useSearchParams()
   // Read the clock once when the page opens (keeps render pure).
@@ -68,7 +69,7 @@ export function BudgetPage() {
         >
           ‹
         </button>
-        <h1 className="month-title">{monthLabel(month)}</h1>
+        <h2 className="month-title">{monthLabel(month)}</h2>
         <button
           type="button"
           className="secondary icon-button"
@@ -125,7 +126,7 @@ function FirstSetup({ month }: { month: string }) {
 
   return (
     <form className="auth-page budget-setup" onSubmit={handleSubmit}>
-      <h1>Set your monthly budget</h1>
+      <h2>Set your monthly budget</h2>
       <p className="muted">
         This is your usual amount. Each month you can keep it or set a different one.
       </p>
