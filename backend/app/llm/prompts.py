@@ -113,11 +113,11 @@ def build_receipt_prompt(today: datetime.date, default_currency: Currency) -> st
 
 # Bump this whenever WEEKLY_SUMMARY_PROMPT changes: saved summaries written by
 # an older prompt are then rewritten next time they're opened.
-WEEKLY_SUMMARY_PROMPT_VERSION = 2
+WEEKLY_SUMMARY_PROMPT_VERSION = 3
 
 WEEKLY_SUMMARY_PROMPT = """\
-You write a one-sentence gist of someone's spending for one week, returned \
-as JSON: {"summary": "..."}.
+You write a one-sentence gist of someone's spending for one week. Reply \
+with just that sentence as plain text: no JSON, no quotes, no labels.
 
 You are given the week's numbers as JSON, worked out in code. The person \
 already sees every total, change and percentage on screen right above your \

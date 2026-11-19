@@ -280,13 +280,8 @@ class WeekFacts(BaseModel):
 
 class WeekSummary(WeekFacts):
     # A saved sentence that still matches these numbers, else None: the list
-    # never calls the AI. Tapping the card asks for one (WeekSentence).
+    # never calls the AI. Tapping the card streams one (insights.weekly_summary).
     summary: str | None
-
-
-class WeekSentence(BaseModel):
-    week_start: datetime.date
-    summary: str
 
 
 class WeeklyInsights(BaseModel):
@@ -294,9 +289,12 @@ class WeeklyInsights(BaseModel):
     weeks: list[WeekSummary]  # newest first
 
 
-class SummaryReply(BaseModel):
-    """What the LLM must send back for a summary."""
+SUMMARY_MAX_CHARS = 160
 
-    # One short sentence: a longer reply counts as a model mistake and is
-    # retried once. The prompt asks for brevity; this guarantees it.
-    summary: Annotated[str, Field(min_length=1, max_length=160)]
+
+class SummaryReply(BaseModel):
+    """The finished, streamed sentence, checked before it's saved."""
+
+    # The prompt asks for one short sentence; this guarantees it. The stream
+    # is also cut off past this length, so nothing longer is ever shown.
+    summary: Annotated[str, Field(min_length=1, max_length=SUMMARY_MAX_CHARS)]

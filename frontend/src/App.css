@@ -947,3 +947,28 @@ button.week-toggle {
   margin: 0;
   line-height: 1.5;
 }
+
+/* A blinking cursor while the AI is still writing. */
+.week-text.writing::after {
+  content: '▍';
+  margin-left: 1px;
+  color: var(--accent);
+  animation: cursor-blink 1s steps(1) infinite;
+}
+
+@keyframes cursor-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .week-text.writing::after {
+    animation: none;
+  }
+}
+
+/* Cut off mid-sentence: shown, but clearly not a finished summary. */
+.week-text.unfinished {
+  color: var(--muted);
+}

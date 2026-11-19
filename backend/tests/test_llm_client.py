@@ -162,3 +162,47 @@ def test_image_calls_share_the_retry_loop():
 
     assert len(sdk.calls) == 2
     assert waits == [1]
+
+
+def chunk(text=None, usage=None):
+    choices = (
+        [] if text is None else [SimpleNamespace(delta=SimpleNamespace(content=text))]
+    )
+    return SimpleNamespace(choices=choices, usage=usage)
+
+
+def test_stream_yields_text_pieces_and_asks_for_usage():
+    usage = SimpleNamespace(prompt_tokens=50, completion_tokens=6)
+    client, sdk, _ = make_client(
+        [iter([chunk("Hello "), chunk("there."), chunk(usage=usage)])]
+    )
+
+    pieces = list(client.stream("Write plain text.", "{}"))
+
+    assert pieces == ["Hello ", "there."]
+    sent = sdk.calls[0]
+    assert sent["stream"] is True
+    assert sent["stream_options"] == {"include_usage": True}
+    assert "response_format" not in sent  # plain text, not JSON mode
+
+
+def test_stream_retries_while_opening():
+    error = status_error(openai.RateLimitError, 429)
+    client, _, waits = make_client([error, iter([chunk("ok")])])
+
+    assert list(client.stream("Write plain text.", "{}")) == ["ok"]
+    assert waits == [1]
+
+
+def test_stream_breaking_off_midway_raises_llm_error():
+    def broken():
+        yield chunk("Half a ")
+        raise openai.APIConnectionError(request=REQUEST)
+
+    client, _, waits = make_client([broken()])
+    stream = client.stream("Write plain text.", "{}")
+
+    assert next(stream) == "Half a "
+    with pytest.raises(LLMError):
+        next(stream)
+    assert waits == []  # text was already handed out: no retry

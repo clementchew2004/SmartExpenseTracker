@@ -16,7 +16,6 @@ import {
   getExpense,
   getMe,
   getMonthlyStats,
-  getWeekSentence,
   getWeeklyInsights,
   listExpenses,
   parseReceipt,
@@ -70,18 +69,6 @@ export function useWeeklyInsights(month: string) {
   return useQuery({
     queryKey: ['insights', 'weekly', month],
     queryFn: () => getWeeklyInsights(month),
-  })
-}
-
-/** A week's sentence, fetched only once you tap the card (`enabled`). */
-export function useWeekSentence(weekStart: string, month: string, enabled: boolean) {
-  return useQuery({
-    queryKey: ['insights', 'sentence', month, weekStart],
-    queryFn: () => getWeekSentence(weekStart, month),
-    enabled,
-    // TanStack Query retries failed requests 3 times by default: here each try
-    // could be a paid AI call, so a failure shows a "Try again" button instead.
-    retry: false,
   })
 }
 

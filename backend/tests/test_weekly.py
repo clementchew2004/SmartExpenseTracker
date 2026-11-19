@@ -60,17 +60,20 @@ TODAY = d("2026-11-11")
 
 
 class FakeLLM:
-    """Pretends to be LLMClient: records what it was sent, returns a summary."""
+    """Pretends to be LLMClient.stream: records what it was sent, then yields
+    the scripted pieces. A scripted LLMError is raised at that point."""
 
-    def __init__(self, fail=False):
+    def __init__(self):
         self.calls = []
-        self.fail = fail
+        self.script = None  # None -> "Summary number N." in two pieces
 
-    def complete(self, system_prompt, user_message):
+    def stream(self, system_prompt, user_message):
         self.calls.append(json.loads(user_message))
-        if self.fail:
-            raise LLMError("OpenAI is down")
-        return json.dumps({"summary": f"Summary number {len(self.calls)}."})
+        pieces = self.script or ["Summary number ", f"{len(self.calls)}."]
+        for piece in pieces:
+            if isinstance(piece, Exception):
+                raise piece
+            yield piece
 
 
 @pytest.fixture
@@ -176,7 +179,23 @@ def test_no_budget_means_no_share(client, make_expense, llm):
 
 
 def sentence(client, week_start="2026-11-02", month="2026-11"):
-    return client.get(f"/insights/weekly/{week_start}/summary", params={"month": month})
+    """The streamed events, parsed: [("text", "..."), ..., ("done", "")]."""
+    response = client.get(
+        f"/insights/weekly/{week_start}/summary", params={"month": month}
+    )
+    if response.status_code != 200:
+        return response.status_code
+    assert response.headers["content-type"].startswith("text/event-stream")
+    events = []
+    for block in response.text.split("\n\n"):
+        if block.startswith("data: "):
+            payload = json.loads(block.removeprefix("data: "))
+            events.append((payload["type"], payload["text"]))
+    return events
+
+
+def text_of(events):
+    return "".join(text for kind, text in events if kind == "text")
 
 
 def test_opening_the_list_never_calls_the_llm(client, make_expense, llm):
@@ -188,30 +207,26 @@ def test_opening_the_list_never_calls_the_llm(client, make_expense, llm):
     assert llm.calls == []
 
 
-def test_tapping_writes_the_sentence_and_the_list_then_includes_it(
+def test_tapping_streams_the_pieces_then_done(client, make_expense, llm):
+    make_expense(amount="12.00", date="2026-11-04")
+
+    events = sentence(client)
+
+    assert events == [("text", "Summary number "), ("text", "1."), ("done", "")]
+    # Saved only after it finished and passed the check; the list now has it.
+    assert weeks(client)["2026-11-02"]["summary"] == "Summary number 1."
+
+
+def test_a_saved_sentence_comes_back_at_once_with_no_llm_call(
     client, make_expense, llm
 ):
     make_expense(amount="12.00", date="2026-11-04")
+    sentence(client)
 
-    response = sentence(client)
+    events = sentence(client)
 
-    assert response.status_code == 200
-    assert response.json() == {
-        "week_start": "2026-11-02",
-        "summary": "Summary number 1.",
-    }
-    assert weeks(client)["2026-11-02"]["summary"] == "Summary number 1."
+    assert events == [("text", "Summary number 1."), ("done", "")]
     assert len(llm.calls) == 1
-
-
-def test_same_numbers_reuse_the_saved_sentence(client, make_expense, llm):
-    make_expense(amount="12.00", date="2026-11-04")
-
-    first = sentence(client).json()["summary"]
-    second = sentence(client).json()["summary"]
-
-    assert first == second
-    assert len(llm.calls) == 1  # one paid call, then reused
 
 
 def test_changed_numbers_make_the_sentence_out_of_date(client, make_expense, llm):
@@ -221,7 +236,7 @@ def test_changed_numbers_make_the_sentence_out_of_date(client, make_expense, llm
     make_expense(amount="3.00", date="2026-11-05")  # e.g. a forgotten expense
 
     assert weeks(client)["2026-11-02"]["summary"] is None  # old one hidden
-    assert sentence(client).json()["summary"] == "Summary number 2."
+    assert text_of(sentence(client)) == "Summary number 2."
     assert llm.calls[-1]["currencies"][0]["spent"] == "15.00"
 
 
@@ -234,11 +249,11 @@ def test_a_new_prompt_version_rewrites_old_sentences(
     monkeypatch.setattr(insights, "WEEKLY_SUMMARY_PROMPT_VERSION", 99)
 
     assert weeks(client)["2026-11-02"]["summary"] is None
-    assert sentence(client).json()["summary"] == "Summary number 2."
+    assert text_of(sentence(client)) == "Summary number 2."
 
 
 def test_a_week_with_no_spending_skips_the_llm(client, llm):
-    assert sentence(client).json()["summary"] == "No spending this week."
+    assert sentence(client) == [("text", "No spending this week."), ("done", "")]
     assert llm.calls == []
 
 
@@ -259,25 +274,38 @@ def test_the_llm_is_only_sent_the_finished_numbers(client, make_expense, llm):
     assert "secret note" not in json.dumps(sent)
 
 
-def test_a_long_reply_is_retried(client, make_expense, llm):
+def test_a_reply_running_too_long_is_cut_off_and_not_saved(client, make_expense, llm):
     make_expense(amount="12.00", date="2026-11-04")
-    replies = iter(
-        [json.dumps({"summary": "word " * 40}), json.dumps({"summary": "Short."})]
-    )
-    llm.complete = lambda system_prompt, user_message: next(replies)
+    llm.script = ["word " * 20, "word " * 20, "this piece is never shown"]
 
-    assert sentence(client).json()["summary"] == "Short."
+    events = sentence(client)
+
+    assert events[-1][0] == "error"
+    assert len(text_of(events)) <= 160  # nothing past the cap reached the screen
+    assert "never shown" not in text_of(events)
+    assert weeks(client)["2026-11-02"]["summary"] is None
 
 
-def test_llm_failure_returns_502_and_saves_nothing(client, make_expense, llm):
-    llm.fail = True
+def test_an_empty_reply_is_an_error_and_not_saved(client, make_expense, llm):
     make_expense(amount="12.00", date="2026-11-04")
+    llm.script = ["   "]
 
-    response = sentence(client)
+    assert sentence(client)[-1][0] == "error"
+    assert weeks(client)["2026-11-02"]["summary"] is None
 
-    assert response.status_code == 502
-    llm.fail = False  # the next tap tries again, because nothing was saved
-    assert sentence(client).json()["summary"] == "Summary number 2."
+
+def test_a_stream_breaking_halfway_saves_nothing(client, make_expense, llm):
+    make_expense(amount="12.00", date="2026-11-04")
+    llm.script = ["This week was ", LLMError("connection dropped")]
+
+    events = sentence(client)
+
+    assert events[0] == ("text", "This week was ")
+    assert events[-1][0] == "error"
+    assert weeks(client)["2026-11-02"]["summary"] is None
+
+    llm.script = None  # the next tap tries again, because nothing was saved
+    assert sentence(client)[-1] == ("done", "")
 
 
 @pytest.mark.parametrize(
@@ -285,8 +313,11 @@ def test_llm_failure_returns_502_and_saves_nothing(client, make_expense, llm):
     ["2026-11-03", "2026-11-16", "2026-10-19"],
     ids=["not-a-monday", "future-week", "not-in-the-month"],
 )
-def test_a_week_outside_the_months_list_is_404(client, llm, week_start):
-    assert sentence(client, week_start).status_code == 404
+def test_a_week_outside_the_months_list_is_404_before_streaming(
+    client, llm, week_start
+):
+    assert sentence(client, week_start) == 404
+    assert llm.calls == []
 
 
 def test_another_users_spending_is_never_included(
@@ -300,7 +331,7 @@ def test_another_users_spending_is_never_included(
 
     assert week["currencies"] == []
     assert week["summary"] is None  # my saved sentence isn't theirs
-    assert sentence(other).json()["summary"] == "No spending this week."
+    assert text_of(sentence(other)) == "No spending this week."
 
 
 @pytest.mark.parametrize("month", ["2026-13", "November", ""])
@@ -308,7 +339,7 @@ def test_bad_month_returns_422(client, llm, month):
     response = client.get("/insights/weekly", params={"month": month})
 
     assert response.status_code == 422
-    assert sentence(client, month=month).status_code == 422
+    assert sentence(client, month=month) == 422
 
 
 def test_needs_login(anon_client):

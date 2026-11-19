@@ -1,8 +1,9 @@
 import base64
 import logging
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from functools import lru_cache
+from typing import Any
 
 import openai
 from openai import OpenAI
@@ -60,18 +61,55 @@ class LLMClient:
         ]
         return self._send(system_prompt, content)
 
+    def stream(self, system_prompt: str, user_message: str) -> Iterator[str]:
+        """Yield the model's reply piece by piece, as plain text (not JSON:
+        half a JSON object can't be parsed, so it couldn't be shown).
+
+        Opening the stream is retried like any call. Once text has been
+        handed out it can't be taken back, so a failure after that isn't
+        retried: it raises LLMError and the caller decides what to show.
+        """
+        started = time.perf_counter()
+        chunks, attempts = self._create(
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message},
+            ],
+            stream=True,
+            # Ask for a last chunk with the token counts, for the cost log.
+            stream_options={"include_usage": True},
+        )
+        try:
+            for chunk in chunks:
+                if chunk.choices and chunk.choices[0].delta.content:
+                    yield chunk.choices[0].delta.content
+                if chunk.usage is not None:
+                    self._log_usage(chunk.usage, attempts, started)
+        except openai.APIError as e:
+            raise LLMError(f"OpenAI stream broke off: {e}") from e
+
     def _send(self, system_prompt: str, user_content: str | list[dict]) -> str:
         started = time.perf_counter()  # includes any retries and backoff waits
+        response, attempts = self._create(
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_content},
+            ],
+            response_format={"type": "json_object"},
+        )
+        if response.usage is not None:
+            self._log_usage(response.usage, attempts, started)
+        return response.choices[0].message.content or ""
+
+    def _create(self, **request: Any) -> tuple[Any, int]:
+        """One chat.completions call with retries on temporary errors.
+        Returns the SDK's response (or stream) and how many attempts it took."""
         for attempt in range(MAX_RETRIES + 1):
             try:
                 response = self.sdk.chat.completions.create(
                     model=self.model,
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_content},
-                    ],
-                    response_format={"type": "json_object"},
                     temperature=0,  # consistent answers: extraction, not creativity
+                    **request,
                 )
             except RETRYABLE_ERRORS as e:
                 if attempt == MAX_RETRIES:
@@ -92,21 +130,20 @@ class LLMClient:
                 raise LLMError(
                     f"OpenAI rejected the request ({e.status_code}): {e.message}"
                 ) from e
-
-            usage = response.usage
-            if usage is not None:
-                logger.info(
-                    "LLM call model=%s input_tokens=%s output_tokens=%s "
-                    "attempts=%s duration_ms=%d",
-                    self.model,
-                    usage.prompt_tokens,
-                    usage.completion_tokens,
-                    attempt + 1,
-                    (time.perf_counter() - started) * 1000,
-                )
-            return response.choices[0].message.content or ""
+            return response, attempt + 1
 
         raise AssertionError("unreachable")
+
+    def _log_usage(self, usage: Any, attempts: int, started: float) -> None:
+        logger.info(
+            "LLM call model=%s input_tokens=%s output_tokens=%s "
+            "attempts=%s duration_ms=%d",
+            self.model,
+            usage.prompt_tokens,
+            usage.completion_tokens,
+            attempts,
+            (time.perf_counter() - started) * 1000,
+        )
 
 
 @lru_cache

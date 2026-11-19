@@ -1,7 +1,8 @@
-import { useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 
 import type { Currency, CurrencyWeek, WeekSummary } from '../api/client'
-import { useWeekSentence, useWeeklyInsights } from '../api/hooks'
+import { streamWeekSentence } from '../api/client'
+import { useWeeklyInsights } from '../api/hooks'
 import { formatMoney } from '../api/options'
 import { monthKey, weekLabel } from '../dates'
 
@@ -80,18 +81,57 @@ function WeekCard({
             .join(' · ')}
         </p>
       )}
-      {spentAnything && <Sentence week={week} month={month} />}
+      {/* Keyed by the numbers: if they change (a new expense), the old
+          sentence no longer fits, so this starts fresh. */}
+      {spentAnything && (
+        <Sentence key={JSON.stringify(week.currencies)} week={week} month={month} />
+      )}
     </article>
   )
 }
 
-/** "▸ Summary": the AI is only asked when you open it (or reused if already written). */
+type Writing = 'idle' | 'writing' | 'done' | 'failed'
+
+/**
+ * "▸ Summary": the AI is only asked when you open it, and its words appear as
+ * they're written. A sentence already saved for these numbers shows at once.
+ *
+ * Plain component state rather than TanStack Query: a query holds one finished
+ * answer, but here the text grows piece by piece while it streams.
+ */
 function Sentence({ week, month }: { week: WeekSummary; month: string }) {
   const [open, setOpen] = useState(false)
+  const [text, setText] = useState(week.summary ?? '')
+  const [state, setState] = useState<Writing>(week.summary ? 'done' : 'idle')
+  const cancel = useRef<AbortController | null>(null)
   const id = useId()
-  // Already written for these exact numbers? Then no request at all.
-  const sentence = useWeekSentence(week.week_start, month, open && !week.summary)
-  const text = week.summary ?? sentence.data?.summary
+
+  // Leaving the page mid-stream: stop reading (the server then stops too).
+  useEffect(() => () => cancel.current?.abort(), [])
+
+  async function write() {
+    cancel.current?.abort()
+    const controller = new AbortController()
+    cancel.current = controller
+    setText('')
+    setState('writing')
+    try {
+      await streamWeekSentence(
+        week.week_start,
+        month,
+        (piece) => setText((t) => t + piece),
+        controller.signal,
+      )
+      setState('done')
+    } catch {
+      if (!controller.signal.aborted) setState('failed')
+    }
+  }
+
+  function toggle() {
+    setOpen((o) => !o)
+    if (!open && state === 'idle') void write()
+  }
 
   return (
     <div className="week-sentence">
@@ -100,28 +140,32 @@ function Sentence({ week, month }: { week: WeekSummary; month: string }) {
         className="link week-toggle"
         aria-expanded={open}
         aria-controls={id}
-        onClick={() => setOpen((o) => !o)}
+        onClick={toggle}
       >
         <span aria-hidden="true">{open ? '▾' : '▸'} </span>Summary
       </button>
       {open && (
-        <div id={id}>
-          {text ? (
-            <p className="week-text">{text}</p>
-          ) : sentence.isError ? (
+        // aria-live: screen readers hear the sentence once, when it settles.
+        <div id={id} aria-live="polite" aria-busy={state === 'writing'}>
+          {state === 'writing' && !text && <span className="skeleton-line" aria-hidden="true" />}
+          {text && (
+            <p
+              className={[
+                'week-text',
+                state === 'writing' ? 'writing' : '',
+                state === 'failed' ? 'unfinished' : '',
+              ].join(' ')}
+            >
+              {text}
+            </p>
+          )}
+          {state === 'failed' && (
             <p className="muted week-text">
-              Couldn't write a summary right now.{' '}
-              <button type="button" className="link" onClick={() => sentence.refetch()}>
+              {text ? "Couldn't finish the summary." : "Couldn't write a summary right now."}{' '}
+              <button type="button" className="link" onClick={() => void write()}>
                 Try again
               </button>
             </p>
-          ) : (
-            <>
-              <p className="visually-hidden" role="status">
-                Writing the summary
-              </p>
-              <span className="skeleton-line" aria-hidden="true" />
-            </>
           )}
         </div>
       )}

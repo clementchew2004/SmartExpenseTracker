@@ -105,13 +105,17 @@ type RequestOptions = {
   // No Content-Type is set for these, so the browser writes the right one itself
   // (for a file, multipart/form-data plus the boundary that separates the parts).
   form?: URLSearchParams | FormData
+  signal?: AbortSignal // lets a stream be cancelled, e.g. when the card unmounts
 }
 
 // A 401 from these means "wrong password" or "session over", never "token
 // expired", so refreshing and retrying would only loop.
 const NO_RETRY = new Set(['/auth/login', '/auth/register', '/auth/refresh', '/auth/logout'])
 
-async function send(path: string, { method = 'GET', body, form }: RequestOptions): Promise<Response> {
+async function send(
+  path: string,
+  { method = 'GET', body, form, signal }: RequestOptions,
+): Promise<Response> {
   const headers: Record<string, string> = {}
   if (body !== undefined) headers['Content-Type'] = 'application/json'
   if (accessToken) headers.Authorization = `Bearer ${accessToken}`
@@ -122,6 +126,7 @@ async function send(path: string, { method = 'GET', body, form }: RequestOptions
       body: form ?? (body === undefined ? undefined : JSON.stringify(body)),
       // Lets the browser send and store the refresh cookie on this other origin.
       credentials: 'include',
+      signal,
     })
   } catch {
     // fetch only throws when there is no response at all (server down, offline, CORS).
@@ -129,17 +134,19 @@ async function send(path: string, { method = 'GET', body, form }: RequestOptions
   }
 }
 
-async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  let response = await send(path, options)
+/** send(), plus one refresh-and-retry when the access token has expired. */
+async function sendWithRefresh(path: string, options: RequestOptions): Promise<Response> {
+  const response = await send(path, options)
+  if (response.status !== 401 || NO_RETRY.has(path)) return response
 
   // Access token expired: get a new one, then try this request once more.
-  if (response.status === 401 && !NO_RETRY.has(path)) {
-    if (await refreshAccessToken()) {
-      response = await send(path, options)
-    } else {
-      onSessionEnded() // the 30 days are over, or you logged out elsewhere
-    }
-  }
+  if (await refreshAccessToken()) return send(path, options)
+  onSessionEnded() // the 30 days are over, or you logged out elsewhere
+  return response
+}
+
+async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const response = await sendWithRefresh(path, options)
 
   if (!response.ok) {
     throw new ApiError(response.status, await errorMessage(response))
@@ -194,11 +201,51 @@ export function getWeeklyInsights(month: string): Promise<Schemas['WeeklyInsight
   return request(`/insights/weekly?month=${encodeURIComponent(month)}`)
 }
 
-/** One week's sentence, written by the AI on first tap and reused after that. */
-export function getWeekSentence(weekStart: string, month: string): Promise<Schemas['WeekSentence']> {
-  return request(
-    `/insights/weekly/${encodeURIComponent(weekStart)}/summary?month=${encodeURIComponent(month)}`,
-  )
+/**
+ * One week's sentence as Server-Sent Events. Calls onText with each piece as
+ * the AI writes it, and resolves once the server says it's checked and saved.
+ * Rejects if the server reports an error or the connection drops before then.
+ *
+ * Not EventSource (the browser's built-in SSE reader): it can't send our
+ * Authorization header. So we fetch and read the body ourselves.
+ */
+export async function streamWeekSentence(
+  weekStart: string,
+  month: string,
+  onText: (piece: string) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  const path = `/insights/weekly/${encodeURIComponent(weekStart)}/summary?month=${encodeURIComponent(month)}`
+  const response = await sendWithRefresh(path, { signal })
+  if (!response.ok || !response.body) {
+    throw new ApiError(response.status, await errorMessage(response))
+  }
+
+  // The body arrives in chunks that don't line up with events: collect text
+  // until a blank line ("\n\n") marks the end of one event, then handle it.
+  const reader = response.body.pipeThrough(new TextDecoderStream()).getReader()
+  let buffer = ''
+  try {
+    for (;;) {
+      const { value, done } = await reader.read()
+      if (done) break
+      buffer += value
+      let end
+      while ((end = buffer.indexOf('\n\n')) >= 0) {
+        const block = buffer.slice(0, end)
+        buffer = buffer.slice(end + 2)
+        if (!block.startsWith('data: ')) continue
+        const event = JSON.parse(block.slice('data: '.length)) as { type: string; text: string }
+        if (event.type === 'text') onText(event.text)
+        else if (event.type === 'done') return
+        else if (event.type === 'error') throw new ApiError(502, event.text)
+      }
+    }
+  } catch (error) {
+    if (error instanceof ApiError || signal?.aborted) throw error
+    throw new ApiError(0, 'Connection lost') // the network dropped mid-stream
+  }
+  throw new ApiError(0, 'Connection lost') // ended without "done"
 }
 
 // --- Accounts ----------------------------------------------------------------------

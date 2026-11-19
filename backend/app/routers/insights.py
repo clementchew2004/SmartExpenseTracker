@@ -2,6 +2,7 @@ import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -9,9 +10,9 @@ from app.auth import CurrentUser
 from app.db import get_db
 from app.llm.client import LLMClient, get_llm_client
 from app.llm.prompts import WEEKLY_SUMMARY_PROMPT_VERSION
-from app.llm.summary import NO_SPENDING, write_summary
+from app.llm.summary import NO_SPENDING, saved_events, summary_events
 from app.models import WeeklySummary
-from app.schemas import WeekFacts, WeeklyInsights, WeekSentence, WeekSummary
+from app.schemas import WeekFacts, WeeklyInsights, WeekSummary
 from app.services.weekly import spent_anything, week_facts, weeks_in_month
 from app.today import Today
 
@@ -52,7 +53,11 @@ def weekly(
     return WeeklyInsights(month=month, weeks=weeks)
 
 
-@router.get("/weekly/{week_start}/summary")
+@router.get(
+    "/weekly/{week_start}/summary",
+    response_class=StreamingResponse,
+    responses={200: {"content": {"text/event-stream": {}}}},
+)
 def weekly_summary(
     week_start: datetime.date,
     month: str,
@@ -60,9 +65,16 @@ def weekly_summary(
     user: CurrentUser,
     llm: LLM,
     today: Today,
-) -> WeekSentence:
-    """One week's sentence, written when you tap the card (or reused for free
-    if its numbers haven't changed since it was written)."""
+) -> StreamingResponse:
+    """One week's sentence as Server-Sent Events, written when you tap the card.
+
+    Events are JSON: {"type": "text", "text": "..."} as words arrive, then
+    {"type": "done"} once it's checked and saved, or {"type": "error"} with
+    nothing saved. A sentence already written for these numbers comes back
+    in one "text" event with no AI call.
+    """
+    # Everything that can fail with a status code happens BEFORE streaming:
+    # once the first event is sent, the response is already a 200.
     start = parse_month(month)
     if week_start not in weeks_in_month(start, today):
         raise HTTPException(
@@ -71,34 +83,42 @@ def weekly_summary(
         )
 
     facts = week_facts(db, user.id, week_start, start, today)
-    if not spent_anything(facts):
-        return WeekSentence(week_start=week_start, summary=NO_SPENDING)
-
     numbers = fingerprint(facts)
     saved = saved_summary(db, user.id, start, week_start)
-    if saved is not None and saved.facts == numbers:
-        return WeekSentence(week_start=week_start, summary=saved.text)
 
-    text = write_summary(facts, llm)
-    if text is None:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Couldn't write a summary right now - try again shortly",
-        )
-    if saved is None:
-        db.add(
-            WeeklySummary(
-                user_id=user.id,
-                month=start,
-                week_start=week_start,
-                facts=numbers,
-                text=text,
-            )
-        )
+    if not spent_anything(facts):
+        events = saved_events(NO_SPENDING)  # nothing to phrase, so no paid call
+    elif saved is not None and saved.facts == numbers:
+        events = saved_events(saved.text)  # same numbers and prompt: free
     else:
-        saved.facts, saved.text = numbers, text
-    db.commit()
-    return WeekSentence(week_start=week_start, summary=text)
+
+        def save(text: str) -> None:
+            # Runs only after the whole sentence passed SummaryReply. The
+            # session is still open: FastAPI closes `yield` dependencies only
+            # after a streaming response has finished.
+            if saved is None:
+                db.add(
+                    WeeklySummary(
+                        user_id=user.id,
+                        month=start,
+                        week_start=week_start,
+                        facts=numbers,
+                        text=text,
+                    )
+                )
+            else:
+                saved.facts, saved.text = numbers, text
+            db.commit()
+
+        events = summary_events(facts, llm, save)
+
+    return StreamingResponse(
+        events,
+        media_type="text/event-stream",
+        # Proxies (e.g. on Render later) may otherwise hold the events back
+        # and deliver them all at once, which defeats the point.
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 def fingerprint(facts: WeekFacts) -> dict:
