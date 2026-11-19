@@ -88,6 +88,26 @@ class LLMClient:
         except openai.APIError as e:
             raise LLMError(f"OpenAI stream broke off: {e}") from e
 
+    def chat(
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]],
+        tool_choice: str = "auto",
+    ) -> Any:
+        """One lap of the agent loop: send the conversation so far plus the
+        tool descriptions, get back the AI's next message - either tool calls
+        (`.tool_calls`) or a text answer (`.content`).
+
+        tool_choice="none" makes it answer in text with what it already has.
+        """
+        started = time.perf_counter()
+        response, attempts = self._create(
+            messages=messages, tools=tools, tool_choice=tool_choice
+        )
+        if response.usage is not None:
+            self._log_usage(response.usage, attempts, started)
+        return response.choices[0].message
+
     def _send(self, system_prompt: str, user_content: str | list[dict]) -> str:
         started = time.perf_counter()  # includes any retries and backoff waits
         response, attempts = self._create(

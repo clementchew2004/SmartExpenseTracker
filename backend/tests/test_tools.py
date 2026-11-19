@@ -24,6 +24,17 @@ def d(text: str) -> datetime.date:
     return datetime.date.fromisoformat(text)
 
 
+def between(from_day, from_month, to_day, to_month, year=None):
+    return BetweenPeriod(
+        kind="between",
+        from_day=from_day,
+        from_month=from_month,
+        to_day=to_day,
+        to_month=to_month,
+        year=year,
+    )
+
+
 # --- Turning the AI's period into dates (pure code) ------------------------------
 
 
@@ -39,12 +50,12 @@ def d(text: str) -> datetime.date:
         (MonthPeriod(kind="month", month=11), ("2026-11-01", "2026-11-19")),
         (MonthPeriod(kind="month", month=12), ("2025-12-01", "2025-12-31")),
         (MonthPeriod(kind="month", month=2, year=2024), ("2024-02-01", "2024-02-29")),
-        (
-            BetweenPeriod(
-                kind="between", from_date=d("2026-11-03"), to_date=d("2026-11-10")
-            ),
-            ("2026-11-03", "2026-11-10"),
-        ),
+        (between(3, 11, 10, 11), ("2026-11-03", "2026-11-10")),
+        (between(1, 10, 31, 10), ("2026-10-01", "2026-10-31")),
+        (between(1, 12, 5, 12), ("2025-12-01", "2025-12-05")),
+        (between(20, 12, 5, 1), ("2025-12-20", "2026-01-05")),
+        (between(10, 11, 30, 11), ("2026-11-10", "2026-11-19")),
+        (between(1, 3, 31, 3, year=2025), ("2025-03-01", "2025-03-31")),
     ],
     ids=[
         "today",
@@ -56,7 +67,12 @@ def d(text: str) -> datetime.date:
         "this-month-so-far",
         "december-means-last-year",
         "leap-february",
-        "between",
+        "between-this-year",
+        "october-not-2023",
+        "december-range-means-last-year",
+        "across-new-year",
+        "ends-later-this-month",
+        "named-year",
     ],
 )
 def test_resolve_period(period, expected):
@@ -68,15 +84,11 @@ def test_resolve_period(period, expected):
 @pytest.mark.parametrize(
     "period",
     [
-        BetweenPeriod(
-            kind="between", from_date=d("2026-11-10"), to_date=d("2026-11-03")
-        ),
+        between(31, 2, 3, 3),
         MonthPeriod(kind="month", month=12, year=2026),
-        BetweenPeriod(
-            kind="between", from_date=d("2026-12-01"), to_date=d("2026-12-05")
-        ),
+        between(1, 12, 5, 12, year=2026),
     ],
-    ids=["from-after-to", "future-month", "future-range"],
+    ids=["no-31-february", "future-month", "future-range"],
 )
 def test_impossible_periods_are_refused(period):
     with pytest.raises(ToolError):
@@ -130,7 +142,13 @@ def test_total_between_two_dates_includes_both_ends(db_session, me, make_expense
     make_expense(amount="2.00", date="2026-11-10")
     make_expense(amount="50.00", date="2026-11-11")
 
-    period = {"kind": "between", "from_date": "2026-11-03", "to_date": "2026-11-10"}
+    period = {
+        "kind": "between",
+        "from_day": 3,
+        "from_month": 11,
+        "to_day": 10,
+        "to_month": 11,
+    }
     assert call(db_session, me, "get_total", period=period)["total"] == "3.00"
 
 
@@ -202,7 +220,13 @@ def test_breakdown_by_month_in_date_order(db_session, me, make_expense):
     make_expense(amount="7.00", date="2026-09-02")
     make_expense(amount="1.00", date="2026-10-01")
 
-    period = {"kind": "between", "from_date": "2026-09-01", "to_date": "2026-10-31"}
+    period = {
+        "kind": "between",
+        "from_day": 1,
+        "from_month": 9,
+        "to_day": 31,
+        "to_month": 10,
+    }
     result = call(db_session, me, "get_breakdown", group_by="month", period=period)
 
     assert result["rows"] == [
@@ -297,10 +321,68 @@ def test_bad_calls_are_refused_with_a_message_for_the_ai(
 def test_tool_descriptions_come_from_the_models():
     schemas = {t["function"]["name"]: t["function"] for t in tool_schemas()}
 
-    assert set(schemas) == {"get_total", "get_breakdown"}
+    assert set(schemas) == {"get_total", "get_breakdown", "compare"}
     total = schemas["get_total"]["parameters"]
     assert total["required"] == ["period"]
     assert "user_id" not in json.dumps(total)  # the AI can't even see the field
     assert "restaurants" in json.dumps(
         total
     )  # category hints guide "eating out" -> Food
+
+
+# --- compare and the currency buttons --------------------------------------------
+
+SEPTEMBER = {"kind": "month", "month": 9}
+OCTOBER = {"kind": "month", "month": 10}
+
+
+def test_compare_works_out_the_difference_in_code(db_session, me, make_expense):
+    make_expense(amount="142.30", date="2026-10-05", category="Food")
+    make_expense(amount="118.90", date="2026-09-05", category="Food")
+
+    result = call(
+        db_session, me, "compare", period_a=OCTOBER, period_b=SEPTEMBER, category="Food"
+    )
+
+    assert result["a"] == {"from": "2026-10-01", "to": "2026-10-31", "total": "142.30"}
+    assert result["b"] == {"from": "2026-09-01", "to": "2026-09-30", "total": "118.90"}
+    assert result["difference_a_minus_b"] == "23.40"
+    assert result["change_pct_a_vs_b"] == 20
+
+
+def test_compare_with_nothing_before_has_no_percentage(db_session, me, make_expense):
+    make_expense(amount="10.00", date="2026-10-05")
+
+    result = call(db_session, me, "compare", period_a=OCTOBER, period_b=SEPTEMBER)
+
+    assert result["difference_a_minus_b"] == "10.00"
+    assert result["change_pct_a_vs_b"] is None
+
+
+def test_compare_asks_when_the_two_periods_used_different_currencies(
+    db_session, me, make_expense
+):
+    make_expense(amount="10.00", date="2026-10-05")
+    make_expense(amount="40.00", currency="MYR", date="2026-09-05")
+
+    result = call(db_session, me, "compare", period_a=OCTOBER, period_b=SEPTEMBER)
+
+    assert result["needs_currency"] == ["GBP", "MYR"]
+
+
+def test_the_button_currency_overrides_the_ai(db_session, me, make_expense):
+    make_expense(amount="10.00", date="2026-11-05")
+    make_expense(amount="40.00", currency="MYR", date="2026-11-06")
+
+    result = run_tool(
+        "get_total",
+        json.dumps({"period": NOVEMBER, "currency": "GBP"}),  # the AI said GBP
+        db_session,
+        me.id,
+        TODAY,
+        "GBP",
+        currency="MYR",  # you tapped MYR
+    )
+
+    assert result["currency"] == "MYR"
+    assert result["total"] == "40.00"

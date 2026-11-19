@@ -1,4 +1,5 @@
 import datetime
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -8,13 +9,22 @@ from sqlalchemy.orm import Session
 
 from app.auth import CurrentUser
 from app.db import get_db
-from app.llm.client import LLMClient, get_llm_client
+from app.llm.ask import answer_question
+from app.llm.client import LLMClient, LLMError, get_llm_client
 from app.llm.prompts import WEEKLY_SUMMARY_PROMPT_VERSION
 from app.llm.summary import NO_SPENDING, saved_events, summary_events
 from app.models import WeeklySummary
-from app.schemas import WeekFacts, WeeklyInsights, WeekSummary
+from app.schemas import (
+    AskRequest,
+    AskResponse,
+    WeekFacts,
+    WeeklyInsights,
+    WeekSummary,
+)
 from app.services.weekly import spent_anything, week_facts, weeks_in_month
 from app.today import Today
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/insights", tags=["insights"])
 
@@ -119,6 +129,33 @@ def weekly_summary(
         # and deliver them all at once, which defeats the point.
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+@router.post("/ask")
+def ask(
+    body: AskRequest, db: DbSession, user: CurrentUser, llm: LLM, today: Today
+) -> AskResponse:
+    """Answer a question about your spending with the agent loop (llm/ask.py).
+
+    The AI only picks tools and their arguments; code runs fixed SQL, always
+    for the logged-in user. Nothing is saved.
+    """
+    try:
+        return answer_question(
+            body.question,
+            llm,
+            db,
+            user.id,
+            today,
+            user.default_currency,
+            body.currency,
+        )
+    except LLMError as e:
+        logger.error("Ask failed: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="The AI service is unavailable right now - try again shortly",
+        ) from e
 
 
 def fingerprint(facts: WeekFacts) -> dict:

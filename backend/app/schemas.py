@@ -1,6 +1,6 @@
 import datetime
 from decimal import Decimal
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 
@@ -298,3 +298,24 @@ class SummaryReply(BaseModel):
     # The prompt asks for one short sentence; this guarantees it. The stream
     # is also cut off past this length, so nothing longer is ever shown.
     summary: Annotated[str, Field(min_length=1, max_length=SUMMARY_MAX_CHARS)]
+
+
+# --- Ask a question ---
+
+
+class AskRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    question: Annotated[str, Field(min_length=1, max_length=300)]
+    # Set when you tapped GBP or MYR after "which currency?"; code then forces
+    # it into every tool call.
+    currency: Currency | None = None
+
+
+class AskResponse(BaseModel):
+    # None when the AI's sentence failed the checks: the numbers still show.
+    answer: str | None
+    # Set instead of an answer when both currencies were used: show buttons.
+    needs_currency: list[Currency] | None
+    # The tool results the answer was built from, for the numbers on screen.
+    facts: list[dict[str, Any]]

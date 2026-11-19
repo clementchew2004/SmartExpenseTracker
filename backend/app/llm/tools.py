@@ -25,6 +25,7 @@ from sqlalchemy.orm import Session
 from app.llm.prompts import CATEGORY_HINTS
 from app.models import Expense
 from app.schemas import Category, Currency
+from app.services.weekly import percent
 
 
 class ToolError(Exception):
@@ -75,17 +76,56 @@ class MonthPeriod(_Strict):
 
 
 class BetweenPeriod(_Strict):
-    """Two exact dates, both included ("from 3 Nov to 10 Nov")."""
+    """Two dates, both included ("from 3 Nov to 10 Nov"). Day and month only:
+    the most recent such range is used, like a month name."""
 
     kind: Literal["between"]
-    from_date: datetime.date
-    to_date: datetime.date
+    from_day: int = Field(ge=1, le=31)
+    from_month: int = Field(ge=1, le=12)
+    to_day: int = Field(ge=1, le=31)
+    to_month: int = Field(ge=1, le=12)
+    # The AI once wrote 2023 for "1 Oct" in 2026: years are code's job unless
+    # the question actually names one.
+    year: int | None = Field(
+        default=None,
+        ge=2000,
+        le=2100,
+        description="The year of the from date. Leave out unless the question "
+        "names a year.",
+    )
 
 
 Period = Annotated[
     DayPeriod | LastDaysPeriod | WeekPeriod | MonthPeriod | BetweenPeriod,
     Field(discriminator="kind"),
 ]
+
+
+def _date(year: int, month: int, day: int) -> datetime.date:
+    try:
+        return datetime.date(year, month, day)
+    except ValueError as e:
+        raise ToolError(f"{day}/{month}/{year} isn't a real date") from e
+
+
+def _between(
+    period: BetweenPeriod, today: datetime.date
+) -> tuple[datetime.date, datetime.date]:
+    """Day/month pairs -> real dates. Without a year: the most recent range
+    that has started (3 Nov asked on 19 Nov -> this year; 3 Dec -> last year).
+    A range like 20 Dec - 5 Jan crosses New Year."""
+    starts = (period.from_month, period.from_day)
+    if period.year is not None:
+        start_year = period.year
+    elif starts <= (today.month, today.day):
+        start_year = today.year
+    else:
+        start_year = today.year - 1
+    crosses_new_year = (period.to_month, period.to_day) < starts
+    return (
+        _date(start_year, period.from_month, period.from_day),
+        _date(start_year + crosses_new_year, period.to_month, period.to_day),
+    )
 
 
 def resolve_period(
@@ -109,9 +149,8 @@ def resolve_period(
                 year = today.year if month <= today.month else today.year - 1
             start = datetime.date(year, month, 1)
             end = datetime.date(year, month, calendar.monthrange(year, month)[1])
-        case BetweenPeriod(from_date=start, to_date=end):
-            if start > end:
-                raise ToolError("from_date is after to_date")
+        case BetweenPeriod():
+            start, end = _between(period, today)
 
     if start > today:
         raise ToolError("That period is in the future - there's no spending yet")
@@ -157,28 +196,43 @@ def _spent(user_id: int, start: datetime.date, end: datetime.date):
 def _pick_currency(
     db: Session,
     user_id: int,
-    start: datetime.date,
-    end: datetime.date,
+    ranges: list[tuple[datetime.date, datetime.date]],
     requested: Currency | None,
     default: Currency,
     category: Category | None = None,
 ) -> Currency | list[str]:
     """The currency to answer in, or the list to ask about.
 
-    Your rule: if the question names none, use the only one you spent in; ask
-    only when both were used. GBP and MYR are never added together.
+    Your rule: if the question names none, use the only one you spent in
+    (across every period it covers); ask only when both were used. GBP and
+    MYR are never added together.
     """
     if requested is not None:
         return requested
-    where = [*_spent(user_id, start, end)]
+    used: set[str] = set()
+    for start, end in ranges:
+        where = [*_spent(user_id, start, end)]
+        if category is not None:
+            where.append(Expense.category == category)
+        used.update(db.scalars(select(Expense.currency).where(*where).distinct()))
+    if len(used) > 1:
+        return sorted(used)
+    return used.pop() if used else default
+
+
+def _total(
+    db: Session,
+    user_id: int,
+    start: datetime.date,
+    end: datetime.date,
+    currency: str,
+    category: Category | None,
+) -> Decimal:
+    where = [*_spent(user_id, start, end), Expense.currency == currency]
     if category is not None:
         where.append(Expense.category == category)
-    used = db.scalars(
-        select(Expense.currency).where(*where).distinct().order_by(Expense.currency)
-    ).all()
-    if len(used) > 1:
-        return list(used)
-    return used[0] if used else default
+    total = db.scalar(select(func.sum(Expense.amount)).where(*where))
+    return total or Decimal("0.00")
 
 
 def get_total(
@@ -190,7 +244,7 @@ def get_total(
 ) -> dict[str, Any]:
     start, end = resolve_period(args.period, today)
     currency = _pick_currency(
-        db, user_id, start, end, args.currency, default_currency, args.category
+        db, user_id, [(start, end)], args.currency, default_currency, args.category
     )
     result: dict[str, Any] = {
         "from": start.isoformat(),
@@ -199,12 +253,8 @@ def get_total(
     }
     if isinstance(currency, list):
         return result | {"needs_currency": currency}
-
-    where = [*_spent(user_id, start, end), Expense.currency == currency]
-    if args.category is not None:
-        where.append(Expense.category == args.category)
-    total = db.scalar(select(func.sum(Expense.amount)).where(*where))
-    return result | {"currency": currency, "total": str(total or Decimal("0.00"))}
+    total = _total(db, user_id, start, end, currency, args.category)
+    return result | {"currency": currency, "total": str(total)}
 
 
 def get_breakdown(
@@ -215,7 +265,9 @@ def get_breakdown(
     default_currency: Currency,
 ) -> dict[str, Any]:
     start, end = resolve_period(args.period, today)
-    currency = _pick_currency(db, user_id, start, end, args.currency, default_currency)
+    currency = _pick_currency(
+        db, user_id, [(start, end)], args.currency, default_currency
+    )
     result: dict[str, Any] = {
         "from": start.isoformat(),
         "to": end.isoformat(),
@@ -245,11 +297,59 @@ def get_breakdown(
     }
 
 
+class CompareArgs(_Strict):
+    period_a: Period = Field(description="The first period in the question")
+    period_b: Period = Field(description="The period it's compared with")
+    category: Category | None = Field(default=None, description=CATEGORY_HELP)
+    currency: Currency | None = Field(default=None, description=CURRENCY_HELP)
+
+
+def compare(
+    args: CompareArgs,
+    db: Session,
+    user_id: int,
+    today: datetime.date,
+    default_currency: Currency,
+) -> dict[str, Any]:
+    """Both totals AND the difference, worked out here, so the AI never has
+    to subtract (it's bad at it, and the rule says it mustn't)."""
+    a = resolve_period(args.period_a, today)
+    b = resolve_period(args.period_b, today)
+    currency = _pick_currency(
+        db, user_id, [a, b], args.currency, default_currency, args.category
+    )
+    result: dict[str, Any] = {"category": args.category}
+    if isinstance(currency, list):
+        return result | {"needs_currency": currency}
+
+    total_a = _total(db, user_id, *a, currency, args.category)
+    total_b = _total(db, user_id, *b, currency, args.category)
+    difference = total_a - total_b
+    return result | {
+        "currency": currency,
+        "a": {"from": a[0].isoformat(), "to": a[1].isoformat(), "total": str(total_a)},
+        "b": {"from": b[0].isoformat(), "to": b[1].isoformat(), "total": str(total_b)},
+        # Positive: A was more. Write it without the sign: "£23.40 more".
+        "difference_a_minus_b": str(difference),
+        "change_pct_a_vs_b": percent(difference, total_b) if total_b else None,
+    }
+
+
 TOOLS = {
     "get_total": (
         GetTotalArgs,
         get_total,
         "Total spent in a period, optionally for one category.",
+    ),
+    "compare": (
+        CompareArgs,
+        compare,
+        (
+            "Two periods side by side, with the difference and % change already "
+            "worked out. For ANY comparison ('vs', 'more than', 'than last month') "
+            "call this once - not get_total twice - and pass the category if the "
+            "question names one."
+        ),
     ),
     "get_breakdown": (
         GetBreakdownArgs,
@@ -282,8 +382,13 @@ def run_tool(
     user_id: int,
     today: datetime.date,
     default_currency: Currency,
+    currency: Currency | None = None,
 ) -> dict[str, Any]:
-    """Run one tool call from the AI. Raises ToolError for anything invalid."""
+    """Run one tool call from the AI. Raises ToolError for anything invalid.
+
+    `currency` is the one you picked with the GBP/MYR buttons: it overrides
+    whatever the AI asked for.
+    """
     if name not in TOOLS:
         raise ToolError(f"There is no tool called {name!r}")
     model, function, _ = TOOLS[name]
@@ -297,4 +402,6 @@ def run_tool(
             for err in e.errors()
         )
         raise ToolError(f"Invalid arguments - {problems}") from e
+    if currency is not None:
+        args = args.model_copy(update={"currency": currency})
     return function(args, db, user_id, today, default_currency)
