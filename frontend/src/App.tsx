@@ -4,6 +4,8 @@ import { Navigate, Route, Routes, useLocation } from 'react-router'
 import './App.css'
 import type { Currency } from './api/client'
 import { formatMoney } from './api/options'
+import { showsChatBubble } from './chatBubblePages'
+import { ChatBubble } from './components/ChatBubble'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { MonthlyChart } from './components/MonthlyChart'
 import { QuickAdd } from './components/QuickAdd'
@@ -58,10 +60,13 @@ function LoggedInApp() {
   const deletion = useDelayedDelete()
   // Also up here, so the question chat survives switching tabs.
   const chat = useAskChat()
+  const { pathname } = useLocation()
+  const bubble = showsChatBubble(pathname)
 
   return (
     <>
-      <main className="app">
+      {/* has-chat-bubble: extra room at the bottom so nothing hides under it. */}
+      <main className={bubble ? 'app has-chat-bubble' : 'app'}>
         <Routes>
           <Route
             path="/"
@@ -102,7 +107,7 @@ function LoggedInApp() {
               </ErrorBoundary>
             }
           />
-          <Route path="/insights" element={<InsightsPage chat={chat} />} />
+          <Route path="/insights" element={<InsightsPage />} />
           {/* The tab's old address (and any ?month= on it) still works. */}
           <Route path="/budget" element={<RenamedTo path="/insights" />} />
           <Route
@@ -119,7 +124,7 @@ function LoggedInApp() {
       </main>
 
       {deletion.pending && (
-        <div className="notice undo-bar" role="status">
+        <div className={`notice undo-bar${bubble ? ' beside-bubble' : ''}`} role="status">
           <span>
             Deleted {deletion.pending.merchant}{' '}
             {formatMoney(deletion.pending.amount, deletion.pending.currency)}
@@ -130,12 +135,17 @@ function LoggedInApp() {
         </div>
       )}
       {deletion.error && (
-        <p className="error undo-bar" role="alert">
+        <p className={`error undo-bar${bubble ? ' beside-bubble' : ''}`} role="alert">
           Couldn't delete: {deletion.error.message}
         </p>
       )}
 
       <TabBar />
+      {bubble && (
+        <ErrorBoundary name="chat">
+          <ChatBubble chat={chat} />
+        </ErrorBoundary>
+      )}
     </>
   )
 }

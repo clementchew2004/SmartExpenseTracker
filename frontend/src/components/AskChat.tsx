@@ -13,8 +13,8 @@ const EXAMPLES = [
   'Where did my money go last month?',
 ]
 
-/** The mini chatbot on the Insights tab. Each question is answered on its own. */
-export function AskChat({ chat }: { chat: Chat }) {
+/** The mini chatbot, inside the chat bubble's window. Each question is answered on its own. */
+export function AskChat({ chat, autoFocus = false }: { chat: Chat; autoFocus?: boolean }) {
   const [question, setQuestion] = useState('')
   const end = useRef<HTMLDivElement>(null)
   const waiting = chat.turns.some((t) => t.status === 'waiting')
@@ -69,6 +69,7 @@ export function AskChat({ chat }: { chat: Chat }) {
         <input
           id="ask-question"
           autoComplete="off"
+          autoFocus={autoFocus}
           placeholder="How much on food in October?"
           value={question}
           maxLength={300}

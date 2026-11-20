@@ -1,17 +1,12 @@
-import { AskChat } from '../components/AskChat'
 import { ErrorBoundary } from '../components/ErrorBoundary'
-import type { AskChat as Chat } from '../useAskChat'
 import { BudgetPage } from './BudgetPage'
 
-/** The Insights tab (was Budget): ask questions first, then your budget. */
-export function InsightsPage({ chat }: { chat: Chat }) {
+/** The Insights tab: your budget first; graphs come below it. The question
+ * chat moved into the chat bubble, which shows on this page too. */
+export function InsightsPage() {
   return (
     <>
       <h1>Insights</h1>
-      {/* Separate boundaries: if one part crashes, the other keeps working. */}
-      <ErrorBoundary name="question chat">
-        <AskChat chat={chat} />
-      </ErrorBoundary>
       <ErrorBoundary name="budget">
         <BudgetPage />
       </ErrorBoundary>
