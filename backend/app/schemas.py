@@ -319,3 +319,25 @@ class AskResponse(BaseModel):
     needs_currency: list[Currency] | None
     # The tool results the answer was built from, for the numbers on screen.
     facts: list[dict[str, Any]]
+
+
+# --- Spending trend (Insights graphs) ---
+
+
+class TrendMonth(BaseModel):
+    month: str  # "2026-10"
+    # None for a month that hasn't started yet: drawn as no line, not £0.
+    total: Decimal | None
+    by_category: dict[Category, Decimal]
+    # That month's own budget, else your usual one, else None (no line).
+    budget: Decimal | None
+
+
+class CurrencyTrend(BaseModel):
+    currency: Currency
+    months: list[TrendMonth]  # oldest first
+
+
+class SpendingTrend(BaseModel):
+    month: str  # the last month shown
+    currencies: list[CurrencyTrend]  # GBP and MYR, never mixed

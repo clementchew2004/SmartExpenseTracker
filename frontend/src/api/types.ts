@@ -155,6 +155,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/stats/trend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Trend
+         * @description The six months ending at `month`, per currency: totals, per-category
+         *     totals and each month's budget. For the Insights graphs.
+         */
+        get: operations["trend_stats_trend_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/parse/text": {
         parameters: {
             query?: never;
@@ -549,6 +570,16 @@ export interface components {
              */
             outlook: "upcoming" | "too_early" | "on_track" | "likely_over" | "over" | "under";
         };
+        /** CurrencyTrend */
+        CurrencyTrend: {
+            /**
+             * Currency
+             * @enum {string}
+             */
+            currency: "GBP" | "MYR";
+            /** Months */
+            months: components["schemas"]["TrendMonth"][];
+        };
         /**
          * CurrencyWeek
          * @description One currency's week. Every number is worked out in code before the LLM
@@ -910,6 +941,13 @@ export interface components {
             /** End Date */
             end_date?: string | null;
         };
+        /** SpendingTrend */
+        SpendingTrend: {
+            /** Month */
+            month: string;
+            /** Currencies */
+            currencies: components["schemas"]["CurrencyTrend"][];
+        };
         /**
          * TokenResponse
          * @description OAuth2's standard shape: the app sends "Authorization: Bearer <access_token>".
@@ -922,6 +960,19 @@ export interface components {
              * @default bearer
              */
             token_type: string;
+        };
+        /** TrendMonth */
+        TrendMonth: {
+            /** Month */
+            month: string;
+            /** Total */
+            total: string | null;
+            /** By Category */
+            by_category: {
+                [key: string]: string;
+            };
+            /** Budget */
+            budget: string | null;
         };
         /**
          * UserRead
@@ -1317,6 +1368,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MonthlyStats"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    trend_stats_trend_get: {
+        parameters: {
+            query: {
+                month: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SpendingTrend"];
                 };
             };
             /** @description Validation Error */

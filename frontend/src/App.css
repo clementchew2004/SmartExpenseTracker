@@ -1247,3 +1247,85 @@ button.chip {
   min-height: 0;
   overflow-y: auto;
 }
+
+/* Insights graphs: the last six months */
+.trend {
+  gap: 16px;
+}
+
+.trend-figure {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.trend-caption {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.trend-canvas {
+  height: 200px;
+}
+
+/* Small line keys for "Spent" / "Budget" (identity never by colour alone). */
+.line-legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.line-key {
+  display: inline-block;
+  width: 16px;
+  margin-left: 6px;
+  border-top: 2px solid var(--accent);
+}
+
+.line-key-budget {
+  border-top: 2px dashed var(--muted);
+}
+
+.legend-inline {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.chart-tooltip {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.25);
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-tooltip ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.chart-tooltip li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}

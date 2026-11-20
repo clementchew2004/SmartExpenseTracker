@@ -16,6 +16,7 @@ import {
   getExpense,
   getMe,
   getMonthlyStats,
+  getSpendingTrend,
   getWeeklyInsights,
   listExpenses,
   parseReceipt,
@@ -72,6 +73,15 @@ export function useWeeklyInsights(month: string) {
   })
 }
 
+/** Six months of spending per currency, with budgets (Insights graphs). Its key
+ * starts with 'stats', so any expense change refreshes it with the donut. */
+export function useSpendingTrend(month: string) {
+  return useQuery({
+    queryKey: ['stats', 'trend', month],
+    queryFn: () => getSpendingTrend(month),
+  })
+}
+
 /** After any change, refetch everything built from expenses: the list and the chart. */
 function useRefreshAfterChange() {
   const queryClient = useQueryClient()
@@ -117,7 +127,12 @@ export function useBudgets(month: string) {
 /** Any budget change: refetch every month, since a usual amount affects them all. */
 function useRefreshBudgets() {
   const queryClient = useQueryClient()
-  return () => queryClient.invalidateQueries({ queryKey: ['budgets'] })
+  return () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['budgets'] }),
+      // The graph's budget line comes from the same amounts.
+      queryClient.invalidateQueries({ queryKey: ['stats', 'trend'] }),
+    ])
 }
 
 export function useSetDefaultBudget() {

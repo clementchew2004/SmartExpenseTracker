@@ -27,6 +27,8 @@ export type Frequency = RepeatRead['frequency']
 export type WeekSummary = Schemas['WeekSummary']
 export type CurrencyWeek = Schemas['CurrencyWeek']
 export type AskResponse = Schemas['AskResponse']
+export type SpendingTrend = Schemas['SpendingTrend']
+export type TrendMonth = Schemas['TrendMonth']
 
 const API_URL: string = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
@@ -194,6 +196,11 @@ export function deleteExpense(id: number): Promise<void> {
 
 export function getMonthlyStats(month: string): Promise<MonthlyStats> {
   return request(`/stats/monthly?month=${encodeURIComponent(month)}`)
+}
+
+/** The six months ending at `month`, per currency, for the Insights graphs. */
+export function getSpendingTrend(month: string): Promise<SpendingTrend> {
+  return request(`/stats/trend?month=${encodeURIComponent(month)}`)
 }
 
 /** Every week touching the month, newest first. Numbers only, so it's instant:
