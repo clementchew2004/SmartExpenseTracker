@@ -1,17 +1,26 @@
+/* Achromatic ledger (design-taste-frontend app style, seed 643993811), warmed:
+   a warm stone ground and one signature colour, a deep money-green, used for
+   the main figures, the primary action and "good" changes. Everything else is
+   ink and warm grey. Every text colour was checked at 4.5:1+ (controls 3:1+)
+   on --bg, --surface and --raised, light and dark. */
 :root {
-  --bg: #ffffff;
-  --surface: #f5f5f4;
+  --bg: #f4f3f1; /* the ground: warm stone */
+  --surface: #ffffff; /* cards sit white on the ground */
+  --raised: #ebe8e3; /* pills, the active tab, your chat bubbles */
   --text: #1c1917;
-  --muted: #716b66; /* 4.5:1+ on both bg and surface */
-  --border: #e7e5e4; /* decorative (card edges) */
-  --control-border: #8f8984; /* inputs/toggles: 3:1+ non-text contrast */
-  --accent: #0f766e;
+  --muted: #625d57;
+  --border: #e7e4df; /* card edges, decorative */
+  --control-border: #7d776f; /* inputs and outline buttons: 3:1+ */
+  --accent: #1f6f48; /* the signature green: primary actions */
   --accent-text: #ffffff;
-  --error: #b91c1c;
-  --success: #15803d;
-  --warning: #a16207; /* budget 'likely over': 4.5:1+ as text on bg and surface */
+  --data: #1f6f48; /* the same green on the screen's main figures */
+  --error: #b42318;
+  --success: #1f6f48; /* "good" is the signature green: one green, not two */
+  --warning: #8a4b08; /* budget 'likely over', as text */
 
-  /* Chart categories: dataviz reference palette, validated order (CVD-safe). */
+  /* Pie chart categories (Add page): the dataviz reference palette, validated
+     for colour-blind separation on this ground (validate_palette.js). Bills and
+     Other share the neutral grey; the ranked list beside the pie names them. */
   --cat-1: #2a78d6;
   --cat-2: #eb6834;
   --cat-3: #1baf7a;
@@ -23,28 +32,30 @@
   --cat-neutral: #b5b4ad;
 
   color-scheme: light dark;
-  font: 16px/1.5 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font: 16px/1.5 'Geist Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   color: var(--text);
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
 }
 
-/* Dark colours: when the phone is dark (unless you picked Light in Settings),
-   or whenever you picked Dark. Same values in both places. */
+/* Dark: a soft black (like iOS) with lifted grey cards, easier on the eyes than
+   pure black. Applies when the phone is dark (unless you picked Light), or
+   whenever you picked Dark. The same values in both places. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --bg: #1c1917;
-    --surface: #292524;
+    --bg: #121212;
+    --surface: #1c1c1e;
+    --raised: #2c2c2e;
     --text: #f5f5f4;
-    --muted: #a8a29e;
-    --border: #44403c;
-    --control-border: #78716c;
-    --accent: #2dd4bf;
-    --accent-text: #042f2e;
-    --error: #f87171;
-    --success: #4ade80;
-    --warning: #facc15;
-
+    --muted: #a6a19b;
+    --border: #2c2c2e;
+    --control-border: #807b75;
+    --accent: #4cc38a;
+    --accent-text: #0b0f0c;
+    --data: #4cc38a;
+    --error: #f0697f;
+    --success: #4cc38a;
+    --warning: #f0b429;
     --cat-1: #3987e5;
     --cat-2: #d95926;
     --cat-3: #199e70;
@@ -58,18 +69,19 @@
 }
 
 :root[data-theme='dark'] {
-  --bg: #1c1917;
-  --surface: #292524;
+  --bg: #121212;
+  --surface: #1c1c1e;
+  --raised: #2c2c2e;
   --text: #f5f5f4;
-  --muted: #a8a29e;
-  --border: #44403c;
-  --control-border: #78716c;
-  --accent: #2dd4bf;
-  --accent-text: #042f2e;
-  --error: #f87171;
-  --success: #4ade80;
-  --warning: #facc15;
-
+  --muted: #a6a19b;
+  --border: #2c2c2e;
+  --control-border: #807b75;
+  --accent: #4cc38a;
+  --accent-text: #0b0f0c;
+  --data: #4cc38a;
+  --error: #f0697f;
+  --success: #4cc38a;
+  --warning: #f0b429;
   --cat-1: #3987e5;
   --cat-2: #d95926;
   --cat-3: #199e70;
@@ -90,12 +102,20 @@
   color-scheme: dark;
 }
 
+
+::selection {
+  background: var(--data);
+  color: var(--accent-text);
+}
+
 * {
   box-sizing: border-box;
 }
 
 body {
   margin: 0;
+  /* Money and counts line up digit for digit everywhere. */
+  font-variant-numeric: tabular-nums;
 }
 
 button,
@@ -105,9 +125,10 @@ select {
   color: inherit;
 }
 
-/* A clear ring for keyboard users (mouse/touch taps don't show it). */
+/* A clear ring for keyboard users (mouse/touch taps don't show it). Ink, so it
+   stands out against the green buttons it so often surrounds. */
 :focus-visible {
-  outline: 3px solid var(--accent);
+  outline: 3px solid var(--text);
   outline-offset: 2px;
 }
 

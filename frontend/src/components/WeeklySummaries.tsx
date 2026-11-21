@@ -5,6 +5,7 @@ import { streamWeekSentence } from '../api/client'
 import { useWeeklyInsights } from '../api/hooks'
 import { formatMoney } from '../api/options'
 import { monthKey, weekLabel } from '../dates'
+import { ChangeArrow, Chevron } from './Icon'
 
 type Props = {
   /** The chart's GBP/MYR choice: the numbers line follows it. */
@@ -93,7 +94,7 @@ function WeekCard({
 type Writing = 'idle' | 'writing' | 'done' | 'failed'
 
 /**
- * "▸ Summary": the AI is only asked when you open it, and its words appear as
+ * "Summary": the AI is only asked when you open it, and its words appear as
  * they're written. A sentence already saved for these numbers shows at once.
  *
  * Plain component state rather than TanStack Query: a query holds one finished
@@ -142,7 +143,7 @@ function Sentence({ week, month }: { week: WeekSummary; month: string }) {
         aria-controls={id}
         onClick={toggle}
       >
-        <span aria-hidden="true">{open ? '▾' : '▸'} </span>Summary
+        <Chevron direction={open ? 'down' : 'right'} size={16} /> Summary
       </button>
       {open && (
         // aria-live: screen readers hear the sentence once, when it settles.
@@ -173,7 +174,7 @@ function Sentence({ week, month }: { week: WeekSummary; month: string }) {
   )
 }
 
-/** "£67.10 · ▲ £28.90 (76%) vs last week · 9% of budget". Parts without a value
+/** "£67.10 · up £28.90 (76%) vs last week · 9% of budget". Parts without a value
  * are left out. Every number comes from the API; nothing is calculated here. */
 function numbersLine(c: CurrencyWeek, comparedWith: string | null) {
   const parts = [<strong key="spent">{formatMoney(c.spent, c.currency)}</strong>]
@@ -188,8 +189,11 @@ function numbersLine(c: CurrencyWeek, comparedWith: string | null) {
         <span key="change">same as {against}</span>
       ) : (
         <span key="change">
-          {/* The arrow is decoration; screen readers hear "up" / "down". */}
-          <span aria-hidden="true">{change > 0 ? '▲' : '▼'} </span>
+          {/* Spending going up is the bad direction, so it's red; down is green.
+              The arrow is decoration; screen readers hear "up" / "down". */}
+          <span className={change > 0 ? 'change-bad' : 'change-good'}>
+            <ChangeArrow up={change > 0} />
+          </span>{' '}
           <span className="visually-hidden">{change > 0 ? 'up ' : 'down '}</span>
           {amount}
           {pct} vs {against}

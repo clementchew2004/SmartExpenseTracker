@@ -5,6 +5,7 @@ import { Link, useSearchParams } from 'react-router'
 import type { Category, ExpenseRead } from '../api/client'
 import { useExpenses } from '../api/hooks'
 import { CATEGORIES, formatMoney } from '../api/options'
+import { Chevron } from '../components/Icon'
 import { dayLabel, isMonthKey, monthBounds, monthKey, monthLabel, shiftMonth } from '../dates'
 
 type Props = {
@@ -68,7 +69,7 @@ export function ExpensesPage({ hiddenId }: Props) {
           aria-label={`Previous month, ${monthLabel(shiftMonth(month, -1))}`}
           onClick={() => show({ month: shiftMonth(month, -1) })}
         >
-          ‹
+          <Chevron direction="left" />
         </button>
         {/* Tapping the month name opens the phone's own month picker. */}
         <button
@@ -94,7 +95,7 @@ export function ExpensesPage({ hiddenId }: Props) {
           aria-label={`Next month, ${monthLabel(shiftMonth(month, 1))}`}
           onClick={() => show({ month: shiftMonth(month, 1) })}
         >
-          ›
+          <Chevron direction="right" />
         </button>
       </div>
 

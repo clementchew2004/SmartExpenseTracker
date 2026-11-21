@@ -5,6 +5,7 @@ import type { ExpenseCreate, ExpenseRead, ExpenseUpdate } from '../api/client'
 import { useExpense, useUpdateExpense } from '../api/hooks'
 import { formatMoney } from '../api/options'
 import { ExpenseFields } from '../components/ExpenseFields'
+import { Chevron } from '../components/Icon'
 
 type Props = {
   /** Hide the expense now; really delete it after the Undo window. */
@@ -67,7 +68,7 @@ function EditForm({ expense, onDelete }: { expense: ExpenseRead; onDelete: Props
     <article className="card edit-card" aria-label={`Edit expense: ${label}`}>
       <div className="edit-header">
         <Link to={listUrl} className="back-link">
-          ‹ Expenses
+          <Chevron direction="left" /> Expenses
         </Link>
         <h1>Edit expense</h1>
       </div>

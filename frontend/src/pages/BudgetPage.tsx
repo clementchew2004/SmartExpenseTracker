@@ -10,6 +10,7 @@ import {
   useSetMonthBudget,
 } from '../api/hooks'
 import { CURRENCIES, CURRENCY_SYMBOL, formatMoney } from '../api/options'
+import { Chevron } from '../components/Icon'
 import { isMonthKey, monthKey, monthLabel, shiftMonth } from '../dates'
 
 // Your wording. Before day 14 there's no sentence: the bar says enough.
@@ -67,7 +68,7 @@ export function BudgetPage() {
           aria-label={`Previous month, ${monthLabel(shiftMonth(month, -1))}`}
           onClick={() => go(-1)}
         >
-          ‹
+          <Chevron direction="left" />
         </button>
         <h2 className="month-title">{monthLabel(month)}</h2>
         <button
@@ -76,7 +77,7 @@ export function BudgetPage() {
           aria-label={`Next month, ${monthLabel(shiftMonth(month, 1))}`}
           onClick={() => go(1)}
         >
-          ›
+          <Chevron direction="right" />
         </button>
       </div>
 

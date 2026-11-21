@@ -5,6 +5,7 @@ import type { Currency } from '../api/client'
 import { formatMoney } from '../api/options'
 import { dateRange, shortMonthLabel } from '../dates'
 import type { AskChat as Chat, ChatTurn } from '../useAskChat'
+import { ChangeArrow } from './Icon'
 
 const EXAMPLES = [
   'How much did I spend yesterday?',
@@ -233,7 +234,10 @@ function Fact({ fact }: { fact: Fact }) {
       {diff !== 0 && (
         <>
           {' '}
-          · <span aria-hidden="true">{diff > 0 ? '▲' : '▼'} </span>
+          ·{' '}
+          <span className={diff > 0 ? 'change-bad' : 'change-good'}>
+            <ChangeArrow up={diff > 0} />
+          </span>{' '}
           <span className="visually-hidden">{diff > 0 ? 'up ' : 'down '}</span>
           {money(fact.difference_a_minus_b.replace('-', ''))}
           {fact.change_pct_a_vs_b != null && ` (${Math.abs(fact.change_pct_a_vs_b)}%)`}

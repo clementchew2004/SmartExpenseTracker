@@ -1,18 +1,21 @@
 import { useState } from 'react'
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
 
-import type { Currency } from '../api/client'
+import type { Category, Currency } from '../api/client'
 import { useMonthlyStats } from '../api/hooks'
 import { CURRENCIES, formatMoney } from '../api/options'
 import { CATEGORY_SLOT, DRAW_ORDER } from '../categoryColors'
 import { monthKey, monthLabel } from '../dates'
+import { CategoryRanking } from './CategoryRanking'
 
 type Props = {
   currency: Currency
   onCurrencyChange: (currency: Currency) => void
 }
 
-/** This month's spending by category, one currency at a time (never mixed). */
+/** This month's spending: a pie of the categories with the total in the middle,
+ * and the categories ranked beside it as its legend. One currency at a time
+ * (never mixed). */
 export function MonthlyChart({ currency, onCurrencyChange }: Props) {
   // Read the clock once when the chart first appears, not on every render.
   const [now] = useState(() => new Date())
@@ -20,12 +23,16 @@ export function MonthlyChart({ currency, onCurrencyChange }: Props) {
   const stats = useMonthlyStats(month)
   // The total comes from the API (SQL SUM), never added up here.
   const total = stats.data?.currency_totals[currency]
-
   const totals = stats.data?.totals[currency] ?? {}
+  // Slices in the palette's fixed order: neighbours were validated as neighbours.
   const slices = DRAW_ORDER.filter((category) => category in totals).map((category) => ({
     category,
     amount: totals[category]!, // the exact string from the API, used for display
     value: Number(totals[category]), // only for drawing slice sizes, never for maths
+  }))
+  const rows = (Object.keys(totals) as Category[]).map((category) => ({
+    category,
+    amount: totals[category]!,
   }))
 
   return (
@@ -53,46 +60,44 @@ export function MonthlyChart({ currency, onCurrencyChange }: Props) {
           {stats.error.message}
         </p>
       )}
-      {stats.isSuccess && slices.length === 0 && (
+      {stats.isSuccess && rows.length === 0 && (
         <p className="muted">No {currency} spending this month yet.</p>
       )}
 
-      {slices.length > 0 && (
+      {rows.length > 0 && total !== undefined && (
         <>
-          {/* The legend below is the text version; this label summarises the picture. */}
+          {/* The ranked list below names every slice; this label sums up the picture. */}
           <div
-            className="chart-canvas"
+            className="pie"
             role="img"
             aria-label={`${currency} spending by category: ${slices
-              .map((slice) => `${slice.category} ${formatMoney(slice.amount, currency)}`)
+              .map((s) => `${s.category} ${formatMoney(s.amount, currency)}`)
               .join(', ')}`}
           >
-            {total !== undefined && (
-              <p className="donut-total">
-                <span className="donut-total-label">Total</span>
-                {formatMoney(total, currency)}
-              </p>
-            )}
+            {/* The month's total is this screen's main figure: the signature colour. */}
+            <p className="pie-total">
+              <span className="month-total-label">Spent so far</span>
+              <span className="month-total-value">{formatMoney(total, currency)}</span>
+            </p>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart accessibilityLayer={false}>
-                <Pie data={slices} dataKey="value" nameKey="category" innerRadius="55%" isAnimationActive={false}>
-                  {slices.map((slice) => (
-                    <Cell key={slice.category} style={{ fill: CATEGORY_SLOT[slice.category] }} />
+                <Pie
+                  data={slices}
+                  dataKey="value"
+                  nameKey="category"
+                  innerRadius="70%"
+                  outerRadius="100%"
+                  isAnimationActive={false}
+                >
+                  {slices.map((s) => (
+                    <Cell key={s.category} style={{ fill: CATEGORY_SLOT[s.category] }} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(_value, _name, item) => formatMoney(item.payload.amount, currency)} />
+                <Tooltip formatter={(_v, _n, item) => formatMoney(item.payload.amount, currency)} />
               </PieChart>
             </ResponsiveContainer>
           </div>
-          <ul className="legend">
-            {slices.map((slice) => (
-              <li key={slice.category}>
-                <span className="swatch" style={{ background: CATEGORY_SLOT[slice.category] }} />
-                <span>{slice.category}</span>
-                <span className="legend-amount">{formatMoney(slice.amount, currency)}</span>
-              </li>
-            ))}
-          </ul>
+          <CategoryRanking rows={rows} currency={currency} colours={CATEGORY_SLOT} />
         </>
       )}
     </section>

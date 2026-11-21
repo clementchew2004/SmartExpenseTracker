@@ -6,6 +6,7 @@ import type { Currency } from '../api/client'
 import { changePassword, downloadExpenses } from '../api/client'
 import { useMe, useUpdateMe } from '../api/hooks'
 import { CURRENCIES } from '../api/options'
+import { Chevron } from '../components/Icon'
 import { RepeatList } from '../components/RepeatList'
 import type { Theme } from '../theme'
 import { applyTheme, savedTheme } from '../theme'
@@ -101,7 +102,7 @@ function Account() {
               aria-expanded={changingPassword}
               onClick={() => setChangingPassword((o) => !o)}
             >
-              Change password <span aria-hidden="true">{changingPassword ? '▾' : '›'}</span>
+              Change password <Chevron direction={changingPassword ? 'down' : 'right'} />
             </button>
             {changingPassword && <ChangePassword onDone={() => setChangingPassword(false)} />}
           </div>

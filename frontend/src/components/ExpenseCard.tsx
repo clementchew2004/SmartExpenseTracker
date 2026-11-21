@@ -1,6 +1,7 @@
 import type { Currency, ExpenseCreate } from '../api/client'
 import { formatMoney } from '../api/options'
 import { ExpenseFields } from './ExpenseFields'
+import { Swap } from './Icon'
 import { RepeatOptions } from './RepeatOptions'
 import type { RepeatChoice } from './RepeatOptions'
 
@@ -55,7 +56,7 @@ export function ExpenseCard({
                 aria-label={`Currency ${expense.currency}. Switch to ${otherCurrency}`}
                 onClick={() => onChange('currency', otherCurrency)}
               >
-                {expense.currency} ⇄
+                {expense.currency} <Swap />
               </button>
             </dd>
           </div>

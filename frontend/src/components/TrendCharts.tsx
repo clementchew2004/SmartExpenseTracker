@@ -1,7 +1,5 @@
 import { useState } from 'react'
 import {
-  Bar,
-  BarChart,
   CartesianGrid,
   Line,
   LineChart,
@@ -14,8 +12,8 @@ import {
 import type { Category, Currency, TrendMonth } from '../api/client'
 import { useSpendingTrend } from '../api/hooks'
 import { CURRENCIES, formatMoney } from '../api/options'
-import { CATEGORY_SLOT, DRAW_ORDER } from '../categoryColors'
 import { shortMonthLabel } from '../dates'
+import { CategoryRanking } from './CategoryRanking'
 
 /** The last six months on the Insights page, ending at the month the arrows
  * show. Every number comes from the API; the browser only draws them. */
@@ -185,12 +183,12 @@ function SpendingLine({ months, currency }: { months: TrendMonth[]; currency: Cu
             <Line
               dataKey="spent"
               type="linear"
-              stroke="var(--accent)"
+              stroke="var(--data)"
               strokeWidth={2}
               strokeLinecap="round"
               strokeLinejoin="round"
-              dot={{ r: 4, fill: 'var(--accent)', stroke: 'var(--bg)', strokeWidth: 2 }}
-              activeDot={{ r: 6, fill: 'var(--accent)', stroke: 'var(--bg)', strokeWidth: 2 }}
+              dot={{ r: 4, fill: 'var(--data)', stroke: 'var(--bg)', strokeWidth: 2 }}
+              activeDot={{ r: 6, fill: 'var(--data)', stroke: 'var(--bg)', strokeWidth: 2 }}
               connectNulls={false}
               isAnimationActive={false}
             />
@@ -227,108 +225,40 @@ function SpendingLine({ months, currency }: { months: TrendMonth[]; currency: Cu
   )
 }
 
-// --- What it went on: categories stacked per month ------------------------------------
+// --- What it went on: the chosen month's categories, against the month before --
 
 function CategoryBars({ months, currency }: { months: TrendMonth[]; currency: Currency }) {
-  // Only categories used in these six months, in the donut's fixed colour order.
-  const used = DRAW_ORDER.filter((c) => months.some((m) => m.by_category[c]))
-  const data = months.map((m) => ({
-    month: m.month,
-    ...Object.fromEntries(used.map((c) => [c, Number(m.by_category[c] ?? 0)])),
+  const current = months[months.length - 1]
+  const before = months[months.length - 2]
+  const categories = new Set([
+    ...Object.keys(current.by_category),
+    ...Object.keys(before.by_category),
+  ]) as Set<Category>
+  const rows = [...categories].map((category) => ({
+    category,
+    amount: current.by_category[category] ?? '0.00',
+    previous: before.by_category[category] ?? '0.00',
   }))
 
   return (
     <figure className="trend-figure">
       <figcaption className="trend-caption">
-        <span>What it went on</span>
+        <span>What it went on in {shortMonthLabel(current.month)}</span>
+        <span className="line-legend" aria-hidden="true">
+          <span className="tick-key" /> {shortMonthLabel(before.month).split(' ')[0]}
+        </span>
       </figcaption>
-      <div className="trend-canvas" aria-hidden="true">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={data}
-            margin={{ top: 8, right: 8, bottom: 0, left: 0 }}
-            // The hidden table gives screen readers the numbers; without this, Recharts
-            // makes ~30 focusable points inside an area marked aria-hidden.
-            accessibilityLayer={false}
-          >
-            <CartesianGrid vertical={false} stroke="var(--border)" strokeWidth={1} />
-            <XAxis
-              dataKey="month"
-              tickFormatter={axisMonth(months)}
-              tick={AXIS}
-              axisLine={false}
-              tickLine={false}
-            />
-            <YAxis
-              tickFormatter={axisMoney(currency)}
-              tick={AXIS}
-              axisLine={false}
-              tickLine={false}
-              width={56}
-              allowDecimals={false}
-            />
-            {used.map((category) => (
-              <Bar
-                key={category}
-                dataKey={category}
-                stackId="month"
-                fill={CATEGORY_SLOT[category]}
-                // A 2px gap in the background colour between segments, like the donut.
-                stroke="var(--bg)"
-                strokeWidth={2}
-                maxBarSize={24}
-                isAnimationActive={false}
-              />
-            ))}
-            <Tooltip
-              cursor={{ fill: 'var(--border)', opacity: 0.4 }}
-              content={({ active, payload, label }) => {
-                if (!active || !payload) return null
-                const parts = payload.filter((p) => Number(p.value) > 0).reverse()
-                if (parts.length === 0) return null
-                const month = months.find((m) => m.month === label)
-                return (
-                  <div className="chart-tooltip">
-                    <span className="muted">{shortMonthLabel(String(label))}</span>
-                    <ul>
-                      {parts.map((p) => (
-                        <li key={String(p.dataKey)}>
-                          <span
-                            className="swatch"
-                            style={{ background: CATEGORY_SLOT[p.dataKey as Category] }}
-                          />
-                          {String(p.dataKey)}
-                          <span className="legend-amount">
-                            {formatMoney(Number(p.value).toFixed(2), currency)}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                    {month?.total && <strong>Total {formatMoney(month.total, currency)}</strong>}
-                  </div>
-                )
-              }}
-            />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-      {/* More than one series, so a legend; Bills and Other share grey, named here. */}
-      <ul className="legend legend-inline" aria-hidden="true">
-        {used.map((c) => (
-          <li key={c}>
-            <span className="swatch" style={{ background: CATEGORY_SLOT[c] }} />
-            {c}
-          </li>
-        ))}
-      </ul>
-      <ScreenReaderTable
-        caption={`${currency} spending per category per month`}
-        head={['Month', ...used]}
-        rows={months.map((m) => [
-          shortMonthLabel(m.month),
-          ...used.map((c) => formatMoney(m.by_category[c] ?? '0.00', currency)),
-        ])}
-      />
+      {current.total === null ? (
+        <p className="muted">{shortMonthLabel(current.month)} hasn't started yet.</p>
+      ) : rows.length === 0 ? (
+        <p className="muted">No {currency} spending in either month.</p>
+      ) : (
+        <CategoryRanking
+          rows={rows}
+          currency={currency}
+          previousLabel={shortMonthLabel(before.month).split(' ')[0]}
+        />
+      )}
     </figure>
   )
 }

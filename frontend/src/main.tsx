@@ -2,6 +2,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router'
+// Geist, bundled with the app (works offline as a PWA): the ledger's typeface.
+import '@fontsource-variable/geist'
 import './index.css'
 import App from './App.tsx'
 import { AuthProvider } from './auth.tsx'
