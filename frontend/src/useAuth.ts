@@ -7,6 +7,8 @@ export type Auth = {
   status: AuthStatus
   logIn: (email: string, password: string) => Promise<void>
   logOut: () => Promise<void>
+  /** Deletes the account (after you typed DELETE), then reloads at the start screen. */
+  deleteAccount: () => Promise<void>
 }
 
 // Filled in by <AuthProvider> (auth.tsx).

@@ -657,22 +657,131 @@ a.button.secondary {
   gap: 16px;
 }
 
-.account {
-  margin: 0;
+/* Grouped sections with a small heading, like a phone's Settings app. */
+.settings-section {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 6px;
 }
 
-.account dt {
+.settings-heading {
+  margin: 0 4px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.settings-card {
+  gap: 0;
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 52px;
+  padding: 8px 0;
+}
+
+.settings-row + .settings-row {
+  border-top: 1px solid var(--border);
+}
+
+.settings-row-stack {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.settings-value {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+/* The label side wraps; controls (toggles, buttons) keep their full size. */
+.settings-row > span:first-child {
+  min-width: 0;
+}
+
+.settings-row > .toggle,
+.settings-row > button {
+  flex-shrink: 0;
+}
+
+.settings-hint {
+  display: block;
   font-size: 0.8125rem;
   color: var(--muted);
 }
 
-.account dd {
-  margin: 2px 0 0;
-  font-weight: 600;
-  overflow-wrap: anywhere;
+button.settings-link {
+  align-self: flex-start;
+  min-height: 44px;
+  padding: 0;
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 8px;
+}
+
+.settings-done {
+  margin: 0;
+}
+
+/* Appearance: three equal choices across the card. */
+.toggle-fill button {
+  flex: 1;
+  padding: 0 8px;
+  white-space: nowrap;
+}
+
+.settings-help summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.settings-help h3 {
+  margin: 12px 0 4px;
+  font-size: 0.9375rem;
+}
+
+.settings-help ul {
+  margin: 0;
+  padding-left: 20px;
+  color: var(--muted);
+}
+
+/* Delete my account: last, on its own, never next to another button. */
+button.danger-link {
+  align-self: center;
+  margin-top: 24px;
+  min-height: 44px;
+  color: var(--error);
+}
+
+.danger-zone {
+  margin-top: 24px;
+  border-color: var(--error);
+  gap: 10px;
+}
+
+.danger-zone h2,
+.danger-zone p {
+  margin: 0;
 }
 
 /* Budget */
@@ -1327,5 +1436,10 @@ button.chip {
 .chart-tooltip li {
   display: flex;
   align-items: center;
+  gap: 6px;
+}
+
+/* The repeats list sits between Settings sections: same small gap under its heading. */
+.settings .repeat-list {
   gap: 6px;
 }

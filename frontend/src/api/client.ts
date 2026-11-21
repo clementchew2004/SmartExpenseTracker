@@ -287,6 +287,39 @@ export function getMe(): Promise<UserRead> {
   return request('/auth/me')
 }
 
+/** Only new expenses typed without a currency use it; saved ones keep theirs. */
+export function updateMe(changes: Schemas['UserUpdate']): Promise<UserRead> {
+  return request('/auth/me', { method: 'PATCH', body: changes })
+}
+
+/** Other devices are logged out; this one gets a fresh login and stays in. */
+export async function changePassword(current: string, next: string): Promise<void> {
+  const tokens = await request<TokenResponse>('/auth/change-password', {
+    method: 'POST',
+    body: { current_password: current, new_password: next },
+  })
+  accessToken = tokens.access_token
+}
+
+/** Deletes the account and everything in it. The server also checks "DELETE". */
+export async function deleteAccount(): Promise<void> {
+  await request('/auth/me', { method: 'DELETE', body: { confirm: 'DELETE' } })
+  accessToken = null
+}
+
+/** Downloads every expense as a CSV file. Not a plain link: the request needs
+ * the Authorization header, so we fetch it and hand the browser the result. */
+export async function downloadExpenses(): Promise<void> {
+  const response = await sendWithRefresh('/expenses/export.csv', {})
+  if (!response.ok) throw new ApiError(response.status, await errorMessage(response))
+  const url = URL.createObjectURL(await response.blob())
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `expenses-${new Date().toISOString().slice(0, 10)}.csv`
+  link.click()
+  URL.revokeObjectURL(url)
+}
+
 // --- Budgets -----------------------------------------------------------------------
 
 export function getBudgets(month: string): Promise<MonthBudgets> {

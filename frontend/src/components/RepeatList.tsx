@@ -12,7 +12,7 @@ export function RepeatList() {
 
   return (
     <section className="repeat-list" aria-label="Repeating expenses">
-      <h2>Repeating expenses</h2>
+      <h2 className="settings-heading">Repeating expenses</h2>
       {repeats.isPending && <p className="muted">Loading…</p>}
       {repeats.isError && <p className="error">{repeats.error.message}</p>}
       {repeats.data?.length === 0 && (

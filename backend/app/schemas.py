@@ -129,6 +129,29 @@ class UserRead(BaseModel):
     default_currency: Currency
 
 
+class UserUpdate(BaseModel):
+    """Settings you can change about yourself. Only new expenses typed without
+    a currency use the default; saved ones keep their own."""
+
+    model_config = ConfigDict(extra="forbid")
+    default_currency: Currency
+
+
+class ChangePasswordRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    current_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=8, max_length=128)  # same rule as register
+
+
+class DeleteAccountRequest(BaseModel):
+    """You must type DELETE. Checked here on the server too, not only on screen,
+    so no stray request (or bug) can delete an account by accident."""
+
+    model_config = ConfigDict(extra="forbid")
+    confirm: Literal["DELETE"]
+
+
 class TokenResponse(BaseModel):
     """OAuth2's standard shape: the app sends "Authorization: Bearer <access_token>"."""
 

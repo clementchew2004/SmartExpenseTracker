@@ -29,8 +29,10 @@
   -webkit-font-smoothing: antialiased;
 }
 
+/* Dark colours: when the phone is dark (unless you picked Light in Settings),
+   or whenever you picked Dark. Same values in both places. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme='light']) {
     --bg: #1c1917;
     --surface: #292524;
     --text: #f5f5f4;
@@ -53,6 +55,39 @@
     --cat-8: #e66767;
     --cat-neutral: #5f5e59;
   }
+}
+
+:root[data-theme='dark'] {
+  --bg: #1c1917;
+  --surface: #292524;
+  --text: #f5f5f4;
+  --muted: #a8a29e;
+  --border: #44403c;
+  --control-border: #78716c;
+  --accent: #2dd4bf;
+  --accent-text: #042f2e;
+  --error: #f87171;
+  --success: #4ade80;
+  --warning: #facc15;
+
+  --cat-1: #3987e5;
+  --cat-2: #d95926;
+  --cat-3: #199e70;
+  --cat-4: #c98500;
+  --cat-5: #d55181;
+  --cat-6: #008300;
+  --cat-7: #9085e9;
+  --cat-8: #e66767;
+  --cat-neutral: #5f5e59;
+}
+
+/* Native controls (date pickers, scrollbars) follow your choice too. */
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
 }
 
 * {

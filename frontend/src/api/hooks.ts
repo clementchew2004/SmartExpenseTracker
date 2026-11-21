@@ -15,6 +15,7 @@ import {
   getBudgets,
   getExpense,
   getMe,
+  updateMe,
   getMonthlyStats,
   getSpendingTrend,
   getWeeklyInsights,
@@ -53,6 +54,14 @@ export function useExpense(id: number) {
 /** The logged-in user (email, default currency). */
 export function useMe() {
   return useQuery({ queryKey: ['me'], queryFn: getMe })
+}
+
+export function useUpdateMe() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: updateMe,
+    onSuccess: (me) => queryClient.setQueryData(['me'], me),
+  })
 }
 
 /** Sentence -> parsed expenses. Saves nothing. */

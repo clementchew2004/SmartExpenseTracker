@@ -95,6 +95,44 @@ export interface paths {
         get: operations["me_auth_me_get"];
         put?: never;
         post?: never;
+        /**
+         * Delete Me
+         * @description Delete your account and everything that's yours. Can't be undone.
+         *
+         *     The invite code goes too: if it were only unlinked, it would look unused
+         *     and work again for someone else.
+         */
+        delete: operations["delete_me_auth_me_delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Me
+         * @description Change your default currency. Saved expenses keep their own currency.
+         */
+        patch: operations["update_me_auth_me_patch"];
+        trace?: never;
+    };
+    "/auth/change-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Change Password
+         * @description Check the current password, set the new one, and log out every other
+         *     device: if you're changing it because it leaked, whoever has it is out.
+         *     This device gets a fresh login so you stay in.
+         *
+         *     The other logins are DELETED, not revoked: a revoked token that comes back
+         *     looks like theft to /refresh and logs out everyone - including you, the
+         *     moment your other device tries to refresh. An unknown token is just
+         *     "not logged in".
+         */
+        post: operations["change_password_auth_change_password_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -113,6 +151,26 @@ export interface paths {
         put?: never;
         /** Create Expense */
         post: operations["create_expense_expenses_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/expenses/export.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Csv
+         * @description Every expense of yours as a spreadsheet file, oldest first.
+         */
+        get: operations["export_csv_expenses_export_csv_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -570,6 +628,13 @@ export interface components {
              */
             outlook: "upcoming" | "too_early" | "on_track" | "likely_over" | "over" | "under";
         };
+        /** ChangePasswordRequest */
+        ChangePasswordRequest: {
+            /** Current Password */
+            current_password: string;
+            /** New Password */
+            new_password: string;
+        };
         /** CurrencyTrend */
         CurrencyTrend: {
             /**
@@ -605,6 +670,18 @@ export interface components {
             budget_share_pct: number | null;
             /** Top Merchants */
             top_merchants: components["schemas"]["MerchantTotal"][];
+        };
+        /**
+         * DeleteAccountRequest
+         * @description You must type DELETE. Checked here on the server too, not only on screen,
+         *     so no stray request (or bug) can delete an account by accident.
+         */
+        DeleteAccountRequest: {
+            /**
+             * Confirm
+             * @constant
+             */
+            confirm: "DELETE";
         };
         /**
          * DueReminder
@@ -989,6 +1066,18 @@ export interface components {
              */
             default_currency: "GBP" | "MYR";
         };
+        /**
+         * UserUpdate
+         * @description Settings you can change about yourself. Only new expenses typed without
+         *     a currency use the default; saved ones keep their own.
+         */
+        UserUpdate: {
+            /**
+             * Default Currency
+             * @enum {string}
+             */
+            default_currency: "GBP" | "MYR";
+        };
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -1187,6 +1276,103 @@ export interface operations {
             };
         };
     };
+    delete_me_auth_me_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeleteAccountRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_me_auth_me_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    change_password_auth_change_password_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangePasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_expenses_expenses_get: {
         parameters: {
             query?: {
@@ -1251,6 +1437,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_csv_expenses_export_csv_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
         };

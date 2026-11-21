@@ -2,7 +2,13 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 
-import { login, logout, refreshAccessToken, setOnSessionEnded } from './api/client'
+import {
+  deleteAccount as deleteMyAccount,
+  login,
+  logout,
+  refreshAccessToken,
+  setOnSessionEnded,
+} from './api/client'
 import type { AuthStatus } from './useAuth'
 import { AuthContext } from './useAuth'
 
@@ -46,5 +52,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  return <AuthContext value={{ status, logIn, logOut }}>{children}</AuthContext>
+  async function deleteAccount() {
+    await deleteMyAccount() // throws on failure: the Settings panel shows why
+    queryClient.clear()
+    // A full reload at the start screen: a clean slate, with nothing of the old
+    // session left in memory. (Navigating inside the app instead lost a race:
+    // the router applies navigation as a deferred transition, so the logged-out
+    // screens saw /settings first and redirected to /login.)
+    window.location.replace('/')
+  }
+
+  return <AuthContext value={{ status, logIn, logOut, deleteAccount }}>{children}</AuthContext>
 }

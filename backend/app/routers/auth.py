@@ -4,7 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy import select, update
+from sqlalchemy import delete, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -20,8 +20,24 @@ from app.auth import (
 )
 from app.config import get_settings
 from app.db import get_db
-from app.models import InviteCode, RefreshToken, User
-from app.schemas import RegisterRequest, TokenResponse, UserRead
+from app.models import (
+    Budget,
+    DefaultBudget,
+    Expense,
+    InviteCode,
+    RefreshToken,
+    RepeatingExpense,
+    User,
+    WeeklySummary,
+)
+from app.schemas import (
+    ChangePasswordRequest,
+    DeleteAccountRequest,
+    RegisterRequest,
+    TokenResponse,
+    UserRead,
+    UserUpdate,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -217,3 +233,54 @@ def logout(db: DbSession, refresh_token: RefreshCookie = None) -> Response:
 def me(user: CurrentUser) -> UserRead:
     """Who the access token belongs to. The app shows this on the Settings tab."""
     return user
+
+
+@router.patch("/me")
+def update_me(body: UserUpdate, db: DbSession, user: CurrentUser) -> UserRead:
+    """Change your default currency. Saved expenses keep their own currency."""
+    user.default_currency = body.default_currency
+    db.commit()
+    return user
+
+
+@router.post("/change-password")
+def change_password(
+    body: ChangePasswordRequest, response: Response, db: DbSession, user: CurrentUser
+) -> TokenResponse:
+    """Check the current password, set the new one, and log out every other
+    device: if you're changing it because it leaked, whoever has it is out.
+    This device gets a fresh login so you stay in.
+
+    The other logins are DELETED, not revoked: a revoked token that comes back
+    looks like theft to /refresh and logs out everyone - including you, the
+    moment your other device tries to refresh. An unknown token is just
+    "not logged in"."""
+    if not verify_password(body.current_password, user.hashed_password):
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, "Your current password is incorrect"
+        )
+    user.hashed_password = hash_password(body.new_password)
+    db.execute(delete(RefreshToken).where(RefreshToken.user_id == user.id))
+    expires_at = utcnow() + datetime.timedelta(days=get_settings().REFRESH_TOKEN_DAYS)
+    tokens, refresh_token = issue_tokens(db, user.id, expires_at)
+    db.commit()
+    set_refresh_cookie(response, refresh_token, expires_at)
+    return tokens
+
+
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
+def delete_me(body: DeleteAccountRequest, db: DbSession, user: CurrentUser) -> Response:
+    """Delete your account and everything that's yours. Can't be undone.
+
+    The invite code goes too: if it were only unlinked, it would look unused
+    and work again for someone else.
+    """
+    for table in (WeeklySummary, RepeatingExpense, Budget, DefaultBudget, Expense):
+        db.execute(delete(table).where(table.user_id == user.id))
+    db.execute(delete(RefreshToken).where(RefreshToken.user_id == user.id))
+    db.execute(delete(InviteCode).where(InviteCode.used_by_user_id == user.id))
+    db.delete(user)
+    db.commit()
+    response = Response(status_code=status.HTTP_204_NO_CONTENT)
+    clear_refresh_cookie(response)
+    return response

@@ -5,6 +5,10 @@ import { BrowserRouter } from 'react-router'
 import './index.css'
 import App from './App.tsx'
 import { AuthProvider } from './auth.tsx'
+import { applyTheme, savedTheme } from './theme'
+
+// Before the first paint, so a dark-mode choice never flashes white.
+applyTheme(savedTheme())
 
 // One cache for all server data (stats, expense list) shared by every component.
 const queryClient = new QueryClient()

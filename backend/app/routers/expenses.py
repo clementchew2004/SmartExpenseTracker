@@ -1,7 +1,9 @@
+import csv
 import datetime
+import io
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from fastapi.exceptions import RequestValidationError
 from pydantic import ValidationError
 from sqlalchemy import select
@@ -67,6 +69,45 @@ def create_expense(
     db.commit()
     db.refresh(new_expense)
     return new_expense
+
+
+# Excel treats a cell starting with one of these as a formula, so a merchant
+# like "=HYPERLINK(...)" could run when the file is opened ("CSV injection").
+FORMULA_START = ("=", "+", "-", "@", "\t", "\r")
+CSV_COLUMNS = ["date", "amount", "currency", "merchant", "category", "note", "source"]
+
+
+def safe_cell(value: object) -> str:
+    """Text a spreadsheet won't run: a leading ' makes formula-like text plain."""
+    text = "" if value is None else str(value)
+    return "'" + text if text.startswith(FORMULA_START) else text
+
+
+# Declared before /{expense_id}, or "export.csv" would be read as an id (422).
+@router.get("/export.csv")
+def export_csv(db: DbSession, user: CurrentUser) -> Response:
+    """Every expense of yours as a spreadsheet file, oldest first."""
+    expenses = db.scalars(
+        select(Expense)
+        .where(Expense.user_id == user.id)
+        .order_by(Expense.date, Expense.id)
+    ).all()
+    out = io.StringIO()
+    writer = csv.writer(out)
+    writer.writerow(CSV_COLUMNS)
+    for e in expenses:
+        # Amounts are written as-is (Decimal text), never as formulas or floats.
+        writer.writerow(
+            [e.date.isoformat(), str(e.amount), e.currency]
+            + [safe_cell(v) for v in (e.merchant, e.category, e.note, e.source)]
+        )
+    filename = f"expenses-{datetime.date.today().isoformat()}.csv"
+    return Response(
+        # A byte-order mark tells Excel the file is UTF-8 (for £ and accents).
+        content="\ufeff" + out.getvalue(),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @router.get("/{expense_id}")
