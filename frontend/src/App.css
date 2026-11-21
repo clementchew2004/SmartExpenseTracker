@@ -81,23 +81,28 @@ select {
   gap: 16px;
 }
 
+/* The sentence box: full width and a little taller, the screen's main control. */
+.quick-add-input {
+  height: 52px;
+  font-size: 1.0625rem; /* 17px+ stops iOS zooming into the field */
+}
+
+.quick-add-hint {
+  margin: 8px 0 16px;
+}
+
+/* "Read it" fills the row; the camera sits beside it. */
 .input-row {
   display: flex;
   gap: 8px;
 }
 
-.input-row input {
-  flex: 1;
-  font-size: 1.0625rem; /* 17px+ stops iOS zooming into the field */
-}
-
-/* Fixed width so "Parse" -> "Reading…" doesn't squeeze the input. */
 .input-row button {
-  flex: 0 0 116px;
+  flex: 1;
   white-space: nowrap;
 }
 
-/* The camera button: square, beside Parse. */
+/* The camera button: square, beside "Read it". */
 .input-row .icon-button {
   flex: 0 0 44px;
   padding: 0;

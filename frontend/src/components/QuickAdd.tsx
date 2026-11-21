@@ -221,19 +221,25 @@ export function QuickAdd({ onSaved }: Props) {
         <label htmlFor="expense-text" className="visually-hidden">
           Describe what you spent
         </label>
+        {/* The box gets its own full-width line, so the whole example sentence fits. */}
+        <input
+          id="expense-text"
+          className="quick-add-input"
+          ref={inputRef}
+          autoFocus
+          autoComplete="off"
+          placeholder="4.50 bubble tea yesterday"
+          aria-describedby="expense-text-hint"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          maxLength={500}
+        />
+        <p id="expense-text-hint" className="hint quick-add-hint">
+          Type it like a text, or scan a receipt
+        </p>
         <div className="input-row">
-          <input
-            id="expense-text"
-            ref={inputRef}
-            autoFocus
-            autoComplete="off"
-            placeholder="4.50 bubble tea yesterday"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            maxLength={500}
-          />
           <button type="submit" disabled={!text.trim() || reading}>
-            {parse.isPending ? 'Reading…' : 'Parse'}
+            {parse.isPending ? 'Reading…' : 'Read it'}
           </button>
           {/* No `capture` attribute: phones then offer both Take Photo and Photo Library. */}
           <input
