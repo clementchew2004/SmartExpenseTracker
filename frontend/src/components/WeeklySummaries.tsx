@@ -17,6 +17,11 @@ export function WeeklySummaries({ currency }: Props) {
   // Read the clock once when this first appears, like the chart.
   const [now] = useState(() => new Date())
   const weeks = useWeeklyInsights(monthKey(now))
+  // Only the newest week is shown at first; earlier ones wait behind a button.
+  const [showEarlier, setShowEarlier] = useState(false)
+  const all = weeks.data?.weeks ?? []
+  const shown = showEarlier ? all : all.slice(0, 1)
+  const hidden = all.length - shown.length
 
   return (
     <section className="weekly" aria-label="This month's weeks" aria-busy={weeks.isPending}>
@@ -41,9 +46,19 @@ export function WeeklySummaries({ currency }: Props) {
           {weeks.error.message}
         </p>
       )}
-      {weeks.data?.weeks.map((week) => (
-        <WeekCard key={week.week_start} week={week} month={weeks.data.month} currency={currency} />
-      ))}
+      {weeks.data &&
+        shown.map((week) => (
+          <WeekCard key={week.week_start} week={week} month={weeks.data.month} currency={currency} />
+        ))}
+      {hidden > 0 && (
+        <button
+          type="button"
+          className="secondary small show-earlier"
+          onClick={() => setShowEarlier(true)}
+        >
+          Show earlier weeks ({hidden})
+        </button>
+      )}
     </section>
   )
 }

@@ -1009,6 +1009,11 @@ label.checkbox input,
   gap: 16px;
 }
 
+/* Its own size, not stretched across the column. */
+.show-earlier {
+  align-self: flex-start;
+}
+
 .week-card {
   display: flex;
   flex-direction: column;

@@ -77,12 +77,13 @@ function LoggedInApp() {
                 <ErrorBoundary name="quick-add form">
                   <QuickAdd onSaved={setChartCurrency} />
                 </ErrorBoundary>
-                <ErrorBoundary name="monthly chart">
-                  <MonthlyChart currency={chartCurrency} onCurrencyChange={setChartCurrency} />
-                </ErrorBoundary>
-                {/* Your choice: reminder cards below the chart. */}
+                {/* Reminders are things to act on (Save or Skip), so they sit under
+                    the quick-add box, the other place expenses get saved. */}
                 <ErrorBoundary name="reminders">
                   <Reminders />
+                </ErrorBoundary>
+                <ErrorBoundary name="monthly chart">
+                  <MonthlyChart currency={chartCurrency} onCurrencyChange={setChartCurrency} />
                 </ErrorBoundary>
                 {/* Your choice: weekly summaries at the very bottom, following the chart's currency. */}
                 <ErrorBoundary name="weekly summaries">
