@@ -151,10 +151,17 @@ select {
   font-weight: 600;
 }
 
-button.link {
-  background: transparent;
-  color: var(--accent);
-  text-decoration: underline;
+/* Secondary actions everywhere (Edit, Remove, Undo, Try again...): one small
+   outline button. Rule: buttons do things; links only go somewhere. */
+button.small {
+  padding: 0 14px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+button.secondary.danger-outline {
+  color: var(--error);
+  border-color: var(--error);
 }
 
 /* Stays in thumb reach while you scroll through the cards. */
@@ -434,8 +441,9 @@ p.undo-bar {
   padding: 0;
 }
 
-.month-label h1 {
+.month-label h2 {
   margin: 0;
+  font-size: 1.25rem;
   text-decoration: underline dotted var(--muted);
   text-underline-offset: 6px;
 }
@@ -721,6 +729,7 @@ a.button.secondary {
 
 button.settings-link {
   align-self: flex-start;
+  background: transparent;
   min-height: 44px;
   padding: 0;
   color: var(--text);
@@ -769,8 +778,6 @@ button.settings-link {
 button.danger-link {
   align-self: center;
   margin-top: 24px;
-  min-height: 44px;
-  color: var(--error);
 }
 
 .danger-zone {
@@ -989,16 +996,31 @@ label.checkbox input,
   gap: 10px;
 }
 
-/* A thin accent edge tells a reminder apart from a freshly parsed card. */
-.reminder {
-  border-left: 4px solid var(--accent);
-}
-
+/* A repeat icon and a "Due" pill tell a reminder apart from a parsed card. */
 .reminder-due {
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.reminder-icon {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.due-pill {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--text);
   font-size: 0.8125rem;
   font-weight: 600;
-  color: var(--accent);
 }
 
 .reminder-summary {
@@ -1043,14 +1065,9 @@ label.checkbox input,
   font-size: 0.875rem;
 }
 
-/* A small text button, left-aligned, still a 44px tap target.
-   button.week-toggle so it outranks the general button.link underline. */
+/* "Summary": a small outline button like every other secondary action. */
 button.week-toggle {
   align-self: flex-start;
-  min-height: 44px;
-  padding: 0;
-  text-decoration: none;
-  font-size: 0.9375rem;
 }
 
 .week-text {
@@ -1442,4 +1459,10 @@ button.chip {
 /* The repeats list sits between Settings sections: same small gap under its heading. */
 .settings .repeat-list {
   gap: 6px;
+}
+
+/* Links (going somewhere) in the app's own colour, never browser-default blue. */
+a {
+  color: var(--accent);
+  text-underline-offset: 3px;
 }

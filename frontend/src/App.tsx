@@ -72,7 +72,7 @@ function LoggedInApp() {
             path="/"
             element={
               <>
-                <h1>Add expense</h1>
+                <h1>What did you spend?</h1>
                 {/* Separate boundaries: if one part crashes, the other keeps working. */}
                 <ErrorBoundary name="quick-add form">
                   <QuickAdd onSaved={setChartCurrency} />
@@ -129,7 +129,7 @@ function LoggedInApp() {
             Deleted {deletion.pending.merchant}{' '}
             {formatMoney(deletion.pending.amount, deletion.pending.currency)}
           </span>
-          <button type="button" className="link" onClick={deletion.undo}>
+          <button type="button" className="secondary small" onClick={deletion.undo}>
             Undo
           </button>
         </div>

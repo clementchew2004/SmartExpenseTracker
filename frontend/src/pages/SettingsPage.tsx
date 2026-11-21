@@ -97,7 +97,7 @@ function Account() {
           <div className="settings-row settings-row-stack">
             <button
               type="button"
-              className="link settings-link"
+              className="settings-link"
               aria-expanded={changingPassword}
               onClick={() => setChangingPassword((o) => !o)}
             >
@@ -138,7 +138,7 @@ function ChangePassword({ onDone }: { onDone: () => void }) {
     return (
       <p className="settings-done" role="status">
         Password changed. Your other devices have been logged out.{' '}
-        <button type="button" className="link" onClick={onDone}>
+        <button type="button" className="secondary small" onClick={onDone}>
           Done
         </button>
       </p>
@@ -318,7 +318,11 @@ function DeleteAccount() {
 
   if (!open) {
     return (
-      <button type="button" className="link danger-link" onClick={() => setOpen(true)}>
+      <button
+        type="button"
+        className="secondary small danger-outline danger-link"
+        onClick={() => setOpen(true)}
+      >
         Delete my account
       </button>
     )

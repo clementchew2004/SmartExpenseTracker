@@ -81,7 +81,12 @@ export function AskChat({ chat, autoFocus = false }: { chat: Chat; autoFocus?: b
       </form>
 
       {chat.turns.length > 0 && (
-        <button type="button" className="link ask-clear" onClick={chat.clear} disabled={waiting}>
+        <button
+          type="button"
+          className="secondary small ask-clear"
+          onClick={chat.clear}
+          disabled={waiting}
+        >
           Clear chat
         </button>
       )}
@@ -106,7 +111,7 @@ function Reply({ turn, chat }: { turn: ChatTurn; chat: Chat }) {
     return (
       <p>
         Couldn't answer right now.{' '}
-        <button type="button" className="link" onClick={() => chat.retry(turn)}>
+        <button type="button" className="secondary small" onClick={() => chat.retry(turn)}>
           Try again
         </button>
       </p>

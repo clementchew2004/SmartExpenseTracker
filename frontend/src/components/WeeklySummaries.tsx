@@ -137,7 +137,7 @@ function Sentence({ week, month }: { week: WeekSummary; month: string }) {
     <div className="week-sentence">
       <button
         type="button"
-        className="link week-toggle"
+        className="secondary small week-toggle"
         aria-expanded={open}
         aria-controls={id}
         onClick={toggle}
@@ -162,7 +162,7 @@ function Sentence({ week, month }: { week: WeekSummary; month: string }) {
           {state === 'failed' && (
             <p className="muted week-text">
               {text ? "Couldn't finish the summary." : "Couldn't write a summary right now."}{' '}
-              <button type="button" className="link" onClick={() => void write()}>
+              <button type="button" className="secondary small" onClick={() => void write()}>
                 Try again
               </button>
             </p>

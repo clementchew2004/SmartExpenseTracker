@@ -93,25 +93,29 @@ function ScreenReaderTable({
   rows: string[][]
 }) {
   return (
-    <table className="visually-hidden">
-      <caption>{caption}</caption>
-      <thead>
-        <tr>
-          {head.map((h) => (
-            <th key={h} scope="col">
-              {h}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((row) => (
-          <tr key={row[0]}>
-            {row.map((cell, i) => (i === 0 ? <th key={i}>{cell}</th> : <td key={i}>{cell}</td>))}
+    // In a hidden <div>, not a hidden <table>: tables ignore the 1px width that
+    // .visually-hidden relies on, and this one stretched the page to ~720px.
+    <div className="visually-hidden">
+      <table>
+        <caption>{caption}</caption>
+        <thead>
+          <tr>
+            {head.map((h) => (
+              <th key={h} scope="col">
+                {h}
+              </th>
+            ))}
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row[0]}>
+              {row.map((cell, i) => (i === 0 ? <th key={i}>{cell}</th> : <td key={i}>{cell}</td>))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   )
 }
 

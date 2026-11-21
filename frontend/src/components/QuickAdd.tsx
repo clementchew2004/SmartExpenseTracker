@@ -281,7 +281,11 @@ export function QuickAdd({ onSaved }: Props) {
         <div className="notice" role="status">
           <span>{notice.text}</span>
           {notice.undo && (
-            <button type="button" className="link" onClick={() => undoDiscard(notice.undo!)}>
+            <button
+              type="button"
+              className="secondary small"
+              onClick={() => undoDiscard(notice.undo!)}
+            >
               Undo
             </button>
           )}

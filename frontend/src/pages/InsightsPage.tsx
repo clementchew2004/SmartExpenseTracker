@@ -17,7 +17,7 @@ export function InsightsPage() {
 
   return (
     <>
-      <h1>Insights</h1>
+      <h1>How you're doing</h1>
       <ErrorBoundary name="budget">
         <BudgetPage />
       </ErrorBoundary>

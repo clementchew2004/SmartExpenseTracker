@@ -219,7 +219,7 @@ function BudgetCard({
             }}
           />
         ) : (
-          <button type="button" className="link" onClick={() => setChanging(true)}>
+          <button type="button" className="secondary small" onClick={() => setChanging(true)}>
             Change {monthLabel(month)} budget
           </button>
         ))}
@@ -258,11 +258,19 @@ function UsualBudgets({ defaults }: { defaults: MonthBudgets['defaults'] }) {
                     {currency}: {amount ? formatMoney(amount, currency) : <span className="muted">not set</span>}
                   </span>
                   <span className="usual-actions">
-                    <button type="button" className="link" onClick={() => setEditing(currency)}>
+                    <button
+                      type="button"
+                      className="secondary small"
+                      onClick={() => setEditing(currency)}
+                    >
                       {amount ? 'Edit' : 'Set'}
                     </button>
                     {amount && (
-                      <button type="button" className="link" onClick={() => remove.mutate(currency)}>
+                      <button
+                        type="button"
+                        className="secondary small"
+                        onClick={() => remove.mutate(currency)}
+                      >
                         Remove
                       </button>
                     )}
@@ -330,7 +338,7 @@ function AmountForm({
         </button>
       </div>
       {onCancel && (
-        <button type="button" className="link" onClick={onCancel}>
+        <button type="button" className="secondary small" onClick={onCancel}>
           Cancel
         </button>
       )}

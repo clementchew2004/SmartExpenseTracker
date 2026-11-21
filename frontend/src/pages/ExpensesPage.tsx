@@ -60,6 +60,7 @@ export function ExpensesPage({ hiddenId }: Props) {
 
   return (
     <section className="expenses" aria-label="Expenses">
+      <h1>Your spending</h1>
       <div className="month-nav">
         <button
           type="button"
@@ -76,7 +77,7 @@ export function ExpensesPage({ hiddenId }: Props) {
           aria-label={`${monthLabel(month)}, choose a month`}
           onClick={() => monthInput.current?.showPicker?.() ?? monthInput.current?.focus()}
         >
-          <h1>{monthLabel(month)}</h1>
+          <h2>{monthLabel(month)}</h2>
         </button>
         <input
           ref={monthInput}

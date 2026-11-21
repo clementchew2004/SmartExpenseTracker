@@ -77,7 +77,12 @@ function ReminderCard({ reminder, waitingFor }: { reminder: DueReminder; waiting
       className="card reminder"
       aria-label={`Reminder: ${reminder.merchant}, due ${dayLabel(reminder.due_date)}`}
     >
-      <p className="reminder-due">Due {dayLabel(reminder.due_date)}</p>
+      <p className="reminder-due">
+        <svg className="reminder-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 12a8 8 0 0 1 13.7-5.6L20 9M20 4v5h-5M20 12a8 8 0 0 1-13.7 5.6L4 15M4 20v-5h5" />
+        </svg>
+        <span className="due-pill">Due {dayLabel(reminder.due_date)}</span>
+      </p>
       {editing ? (
         <ExpenseFields
           expense={draft}
