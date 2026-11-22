@@ -40,6 +40,20 @@ def percent(part: Decimal, whole: Decimal) -> int:
     return int((part / whole * 100).quantize(Decimal(1), rounding=ROUND_HALF_UP))
 
 
+# Above doubling, a % says more about how small last week was than about this
+# week (£10 -> £583.70 is "5737%"), so the card shows only the amount of change.
+MAX_CHANGE_PCT = 100
+
+
+def change_pct(now: Decimal, before: Decimal | None) -> int | None:
+    """The % change from last week, or None when there's nothing to compare
+    with (no history, or last week was 0) or the jump is more than double."""
+    if not before:
+        return None
+    pct = percent(now - before, before)
+    return pct if pct <= MAX_CHANGE_PCT else None
+
+
 def totals_by_currency(
     db: Session, user_id: int, start: datetime.date, end: datetime.date
 ) -> dict[str, Decimal]:
@@ -106,7 +120,7 @@ def week_facts(
                 spent=now,
                 previous=before,
                 change=None if before is None else now - before,
-                change_pct=percent(now - before, before) if before else None,
+                change_pct=change_pct(now, before),
                 budget=budget,
                 budget_share_pct=percent(now, budget) if budget else None,
                 top_merchants=top_merchants(db, user_id, currency, week_start, until),

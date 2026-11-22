@@ -282,7 +282,8 @@ class CurrencyWeek(BaseModel):
     # progress). None in your first week, when there's nothing to compare with.
     previous: Decimal | None
     change: Decimal | None  # spent - previous
-    change_pct: int | None  # None if there's no previous, or it was 0
+    # None if there's no previous, it was 0, or the rise is over 100% (noise).
+    change_pct: int | None
     # The budget of the month whose list this is (a week crossing two months
     # shows a different share in each list). None if that currency has no budget.
     budget: Decimal | None

@@ -139,6 +139,28 @@ def test_expenses_later_this_week_are_not_counted_yet(client, make_expense, llm)
     assert gbp(weeks(client)["2026-11-09"])["spent"] == "5.00"
 
 
+@pytest.mark.parametrize(
+    ("before", "now", "pct"),
+    [
+        ("10.00", "20.00", 100),  # exactly double: still shown
+        ("10.00", "20.10", None),  # just over double: hidden
+        ("10.00", "583.70", None),  # the "5737%" case
+        ("600.00", "1.00", -100),  # a big fall is at most 100%: always shown
+    ],
+    ids=["double", "over-double", "tiny-last-week", "big-fall"],
+)
+def test_rises_over_100_percent_hide_the_percent_but_keep_the_amount(
+    client, make_expense, llm, before, now, pct
+):
+    make_expense(amount=before, date="2026-10-28")  # week of 26 Oct
+    make_expense(amount=now, date="2026-11-04")  # week of 2 Nov
+
+    week = gbp(weeks(client)["2026-11-02"])
+
+    assert week["change_pct"] == pct
+    assert week["change"] is not None  # the amount of change always stays
+
+
 def test_first_week_has_no_comparison(client, make_expense, llm):
     make_expense(amount="12.00", date="2026-11-04")
 
