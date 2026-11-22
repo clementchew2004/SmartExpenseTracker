@@ -1618,6 +1618,52 @@ a {
   vertical-align: -1px;
 }
 
+/* Budget pace: the takeaway line above the graph. */
+.pace-summary {
+  margin: 0;
+}
+
+/* Changes vs usual: bars grow from a middle line, right = more, left = less. The
+   arrow beside the amount carries the colour; the bars stay ink and grey. */
+.changes li {
+  gap: 4px;
+}
+
+.change-track {
+  position: relative;
+  height: 6px;
+  margin: 2px 0;
+  border-radius: 3px;
+  background: var(--border);
+}
+
+.change-mid {
+  position: absolute;
+  left: 50%;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--muted);
+}
+
+.change-bar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 3px;
+}
+
+.change-bar.up {
+  left: 50%;
+  background: var(--text);
+}
+
+.change-bar.down {
+  right: 50%;
+  background: var(--control-border);
+}
+
 /* The pie on Add: a thin ring with the month's total in its middle. */
 .pie {
   position: relative;

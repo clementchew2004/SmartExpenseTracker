@@ -29,6 +29,10 @@ export type CurrencyWeek = Schemas['CurrencyWeek']
 export type AskResponse = Schemas['AskResponse']
 export type SpendingTrend = Schemas['SpendingTrend']
 export type TrendMonth = Schemas['TrendMonth']
+export type BudgetPace = Schemas['BudgetPace']
+export type PaceDay = Schemas['PaceDay']
+export type CategoryChanges = Schemas['CategoryChanges']
+export type CategoryChange = Schemas['CategoryChange']
 
 const API_URL: string = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
@@ -201,6 +205,16 @@ export function getMonthlyStats(month: string): Promise<MonthlyStats> {
 /** The six months ending at `month`, per currency, for the Insights graphs. */
 export function getSpendingTrend(month: string): Promise<SpendingTrend> {
   return request(`/stats/trend?month=${encodeURIComponent(month)}`)
+}
+
+/** `month` day by day: running total spent and the even pace to the budget. */
+export function getBudgetPace(month: string): Promise<BudgetPace> {
+  return request(`/stats/pace?month=${encodeURIComponent(month)}`)
+}
+
+/** Each category in `month` against your recent average. */
+export function getCategoryChanges(month: string): Promise<CategoryChanges> {
+  return request(`/stats/changes?month=${encodeURIComponent(month)}`)
 }
 
 /** Every week touching the month, newest first. Numbers only, so it's instant:

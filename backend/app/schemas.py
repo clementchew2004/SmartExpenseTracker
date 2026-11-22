@@ -365,3 +365,54 @@ class CurrencyTrend(BaseModel):
 class SpendingTrend(BaseModel):
     month: str  # the last month shown
     currencies: list[CurrencyTrend]  # GBP and MYR, never mixed
+
+
+# --- Budget pace: this month's spending, day by day, against an even pace ------------
+
+
+class PaceDay(BaseModel):
+    date: datetime.date
+    # Everything spent from the 1st up to and including this day. None for a day
+    # that hasn't come yet: drawn as no point, not as a flat line.
+    spent: Decimal | None
+    # Where you'd be if the budget were spread evenly: budget x day / days in the
+    # month. None when this currency has no budget.
+    on_pace: Decimal | None
+
+
+class CurrencyPace(BaseModel):
+    currency: Currency
+    budget: Decimal | None
+    days: list[PaceDay]  # every day of the month, 1st first
+
+
+class BudgetPace(BaseModel):
+    month: str
+    currencies: list[CurrencyPace]  # GBP and MYR, never mixed
+
+
+# --- Changes vs usual: each category this month against your recent average ----------
+
+
+class CategoryChange(BaseModel):
+    category: Category
+    now: Decimal  # this month (up to the same day, while it's in progress)
+    usual: Decimal  # the average of the months compared, over the same days
+    change: Decimal  # now - usual: positive = spending more than usual
+
+
+class CurrencyChanges(BaseModel):
+    currency: Currency
+    changes: list[CategoryChange]  # biggest change first, up or down
+
+
+class CategoryChanges(BaseModel):
+    month: str
+    # The months averaged into "usual" ("2026-10", ...): up to 3, and only from your
+    # first expense on, so empty months before you started don't drag it down.
+    # Empty = no history yet, nothing to compare.
+    compared_months: list[str]
+    # While the month is in progress, only days 1..this are compared in every month
+    # (a fair "by this point"). None = whole months.
+    up_to_day: int | None
+    currencies: list[CurrencyChanges]

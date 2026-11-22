@@ -234,6 +234,48 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/stats/pace": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Pace
+         * @description `month` day by day, per currency: the running total spent and the even pace
+         *     that would land on the budget. For the Insights budget pace graph.
+         */
+        get: operations["pace_stats_pace_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/stats/changes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Changes
+         * @description Each category in `month` against your average of the previous months (over
+         *     the same days while `month` is in progress). For the Insights changes graph.
+         */
+        get: operations["changes_stats_changes_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/parse/text": {
         parameters: {
             query?: never;
@@ -606,6 +648,13 @@ export interface components {
             /** Amount */
             amount: string;
         };
+        /** BudgetPace */
+        BudgetPace: {
+            /** Month */
+            month: string;
+            /** Currencies */
+            currencies: components["schemas"]["CurrencyPace"][];
+        };
         /** BudgetStatus */
         BudgetStatus: {
             /**
@@ -628,12 +677,59 @@ export interface components {
              */
             outlook: "upcoming" | "too_early" | "on_track" | "likely_over" | "over" | "under";
         };
+        /** CategoryChange */
+        CategoryChange: {
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "Food" | "Groceries" | "Transport" | "Shopping" | "Subscriptions" | "Entertainment" | "Bills" | "Health" | "Travel" | "Other";
+            /** Now */
+            now: string;
+            /** Usual */
+            usual: string;
+            /** Change */
+            change: string;
+        };
+        /** CategoryChanges */
+        CategoryChanges: {
+            /** Month */
+            month: string;
+            /** Compared Months */
+            compared_months: string[];
+            /** Up To Day */
+            up_to_day: number | null;
+            /** Currencies */
+            currencies: components["schemas"]["CurrencyChanges"][];
+        };
         /** ChangePasswordRequest */
         ChangePasswordRequest: {
             /** Current Password */
             current_password: string;
             /** New Password */
             new_password: string;
+        };
+        /** CurrencyChanges */
+        CurrencyChanges: {
+            /**
+             * Currency
+             * @enum {string}
+             */
+            currency: "GBP" | "MYR";
+            /** Changes */
+            changes: components["schemas"]["CategoryChange"][];
+        };
+        /** CurrencyPace */
+        CurrencyPace: {
+            /**
+             * Currency
+             * @enum {string}
+             */
+            currency: "GBP" | "MYR";
+            /** Budget */
+            budget: string | null;
+            /** Days */
+            days: components["schemas"]["PaceDay"][];
         };
         /** CurrencyTrend */
         CurrencyTrend: {
@@ -829,6 +925,18 @@ export interface components {
             currency_totals: {
                 [key: string]: string;
             };
+        };
+        /** PaceDay */
+        PaceDay: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Spent */
+            spent: string | null;
+            /** On Pace */
+            on_pace: string | null;
         };
         /** ParseResult */
         ParseResult: {
@@ -1605,6 +1713,68 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SpendingTrend"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pace_stats_pace_get: {
+        parameters: {
+            query: {
+                month: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BudgetPace"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    changes_stats_changes_get: {
+        parameters: {
+            query: {
+                month: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryChanges"];
                 };
             };
             /** @description Validation Error */

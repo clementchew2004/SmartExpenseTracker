@@ -18,6 +18,8 @@ import {
   updateMe,
   getMonthlyStats,
   getSpendingTrend,
+  getBudgetPace,
+  getCategoryChanges,
   getWeeklyInsights,
   listExpenses,
   parseReceipt,
@@ -91,6 +93,22 @@ export function useSpendingTrend(month: string) {
   })
 }
 
+/** Budget pace graph. Keyed under 'stats' so expense changes refresh it too. */
+export function useBudgetPace(month: string) {
+  return useQuery({
+    queryKey: ['stats', 'pace', month],
+    queryFn: () => getBudgetPace(month),
+  })
+}
+
+/** Changes vs usual graph. Keyed under 'stats' so expense changes refresh it too. */
+export function useCategoryChanges(month: string) {
+  return useQuery({
+    queryKey: ['stats', 'changes', month],
+    queryFn: () => getCategoryChanges(month),
+  })
+}
+
 /** After any change, refetch everything built from expenses: the list and the chart. */
 function useRefreshAfterChange() {
   const queryClient = useQueryClient()
@@ -139,8 +157,9 @@ function useRefreshBudgets() {
   return () =>
     Promise.all([
       queryClient.invalidateQueries({ queryKey: ['budgets'] }),
-      // The graph's budget line comes from the same amounts.
+      // The graphs' budget lines come from the same amounts.
       queryClient.invalidateQueries({ queryKey: ['stats', 'trend'] }),
+      queryClient.invalidateQueries({ queryKey: ['stats', 'pace'] }),
     ])
 }
 
