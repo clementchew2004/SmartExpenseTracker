@@ -43,6 +43,38 @@ def test_accepted_formats_come_out_as_jpeg(fmt, mode):
     assert result.size == (400, 600)
 
 
+def iphone_style_jpeg() -> bytes:
+    """A JPEG with a second, smaller picture inside, the way newer iPhones store
+    an HDR gain map or depth map. Pillow calls this format "MPO"."""
+    out = io.BytesIO()
+    main = Image.new("RGB", (400, 600), "white")
+    hidden = Image.new("RGB", (100, 150), "grey")
+    main.save(out, format="MPO", save_all=True, append_images=[hidden])
+    return out.getvalue()
+
+
+def test_iphone_jpegs_with_a_hidden_second_picture_are_accepted():
+    data = iphone_style_jpeg()
+    assert as_image(data).format == "MPO"  # what used to be rejected
+
+    result = as_image(prepare_receipt(data))
+
+    # A plain one-picture JPEG of the main photo: the hidden picture is left out.
+    assert result.format == "JPEG"
+    assert result.size == (400, 600)
+    assert getattr(result, "n_frames", 1) == 1
+
+
+def test_a_rejection_logs_what_the_file_was(caplog):
+    with (
+        caplog.at_level("WARNING", logger="app.llm.images"),
+        pytest.raises(UnsupportedImageError),
+    ):
+        prepare_receipt(photo("GIF"))
+
+    assert "detected format GIF" in caplog.text
+
+
 def test_too_large_is_rejected_before_opening():
     with pytest.raises(ImageTooLargeError):
         prepare_receipt(b"x" * (MAX_UPLOAD_BYTES + 1))
