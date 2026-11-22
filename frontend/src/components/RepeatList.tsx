@@ -60,11 +60,16 @@ function RepeatCard({ repeat }: { repeat: RepeatRead }) {
           </div>
         </div>
       ) : (
-        <div className="card-actions">
-          <button type="button" className="secondary" onClick={() => setMode('edit')}>
+        // Same as every Settings row: Edit, then the destructive action, together on the right.
+        <div className="row-actions">
+          <button type="button" className="secondary small" onClick={() => setMode('edit')}>
             Edit
           </button>
-          <button type="button" className="secondary" onClick={() => setMode('confirm-stop')}>
+          <button
+            type="button"
+            className="secondary small"
+            onClick={() => setMode('confirm-stop')}
+          >
             Stop
           </button>
         </div>

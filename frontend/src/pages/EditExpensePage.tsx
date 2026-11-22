@@ -65,7 +65,8 @@ function EditForm({ expense, onDelete }: { expense: ExpenseRead; onDelete: Props
   const label = `${expense.merchant} ${formatMoney(expense.amount, expense.currency)}`
 
   return (
-    <article className="card edit-card" aria-label={`Edit expense: ${label}`}>
+    // The title sits on the page like every other screen; only the form is a card.
+    <div className="edit-page">
       <div className="edit-header">
         <Link to={listUrl} className="back-link">
           <Chevron direction="left" /> Expenses
@@ -73,40 +74,42 @@ function EditForm({ expense, onDelete }: { expense: ExpenseRead; onDelete: Props
         <h1>Edit expense</h1>
       </div>
 
-      <ExpenseFields expense={draft} onChange={change} />
+      <article className="card edit-card" aria-label={`Edit expense: ${label}`}>
+        <ExpenseFields expense={draft} onChange={change} />
 
-      {update.isError && (
-        <p className="error" role="alert">
-          {update.error.message}
-        </p>
-      )}
+        {update.isError && (
+          <p className="error" role="alert">
+            {update.error.message}
+          </p>
+        )}
 
-      {confirming ? (
-        <div className="confirm" role="alertdialog" aria-label="Confirm delete">
-          <p>Delete {label}?</p>
+        {confirming ? (
+          <div className="confirm" role="alertdialog" aria-label="Confirm delete">
+            <p>Delete {label}?</p>
+            <div className="card-actions">
+              <button type="button" className="secondary" onClick={() => setConfirming(false)}>
+                Cancel
+              </button>
+              <button type="button" className="danger" onClick={handleDelete} autoFocus>
+                Delete
+              </button>
+            </div>
+          </div>
+        ) : (
           <div className="card-actions">
-            <button type="button" className="secondary" onClick={() => setConfirming(false)}>
-              Cancel
-            </button>
-            <button type="button" className="danger" onClick={handleDelete} autoFocus>
+            <button type="button" className="secondary" onClick={() => setConfirming(true)}>
               Delete
             </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={!hasChanges || update.isPending}
+            >
+              {update.isPending ? 'Saving…' : 'Save'}
+            </button>
           </div>
-        </div>
-      ) : (
-        <div className="card-actions">
-          <button type="button" className="secondary" onClick={() => setConfirming(true)}>
-            Delete
-          </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={!hasChanges || update.isPending}
-          >
-            {update.isPending ? 'Saving…' : 'Save'}
-          </button>
-        </div>
-      )}
-    </article>
+        )}
+      </article>
+    </div>
   )
 }

@@ -47,7 +47,8 @@ export function CategoryRanking({
               {row.category}
             </span>
             {/* Last period beside this one, in grey, on the same line and right edge. */}
-            {row.previous !== undefined && previousLabel && (
+            {/* Nothing last period: "Oct £0.00" would only be noise, so it's left out. */}
+            {row.previous !== undefined && Number(row.previous) > 0 && previousLabel && (
               <span className="ranking-previous">
                 {previousLabel} {formatMoney(row.previous, currency)}
               </span>

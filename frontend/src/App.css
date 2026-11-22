@@ -300,12 +300,14 @@ button.secondary.danger-outline {
   gap: 14px;
 }
 
+/* Same label style as the login and register forms: readable, in the ink. */
 .card-fields label {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  font-size: 0.8125rem;
-  color: var(--muted);
+  gap: 6px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text);
 }
 
 .card-fields input,
@@ -550,6 +552,12 @@ p.undo-bar {
 }
 
 /* Edit page */
+.edit-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
 .edit-header {
   display: flex;
   flex-direction: column;
@@ -729,7 +737,7 @@ a.button.secondary {
 
 .settings-hint {
   display: block;
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   color: var(--muted);
 }
 
@@ -828,7 +836,7 @@ button.danger-link {
 
 .hint {
   color: var(--muted);
-  font-size: 0.8125rem;
+  font-size: 0.875rem; /* 14px: 13px grey was hard to read on a phone */
 }
 
 .budget-bar {
@@ -937,13 +945,11 @@ ul.usual-budgets li .amount-form {
   flex: 1;
 }
 
-.usual-actions {
+/* Settings rows: Edit, then the destructive action, together on the right. */
+.row-actions {
   display: flex;
-  gap: 16px;
-}
-
-.usual-actions button.link {
-  padding: 0;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
 /* Repeat checkbox on the confirmation card */

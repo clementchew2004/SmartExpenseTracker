@@ -120,12 +120,16 @@ function ScreenReaderTable({
 // --- Spending per month, with the budget as a step line ------------------------------
 
 function SpendingLine({ months, currency }: { months: TrendMonth[]; currency: Currency }) {
-  const hasBudget = months.some((m) => m.budget !== null)
-  const data = months.map((m) => ({
+  // Months before your first spending are "not tracked yet", not "spent £0": the
+  // line starts at your first month instead of running flat along the bottom.
+  const first = months.findIndex((m) => Number(m.total ?? 0) > 0)
+  const tracked = (i: number) => i >= first
+  const hasBudget = months.some((m, i) => tracked(i) && m.budget !== null)
+  const data = months.map((m, i) => ({
     month: m.month,
-    // null = a month that hasn't started: no point, not £0.
-    spent: m.total === null ? null : Number(m.total),
-    budget: m.budget === null ? null : Number(m.budget),
+    // null = no point: a month that hasn't started, or one before you started.
+    spent: m.total === null || !tracked(i) ? null : Number(m.total),
+    budget: m.budget === null || !tracked(i) ? null : Number(m.budget),
   }))
 
   return (
@@ -212,7 +216,12 @@ function SpendingLine({ months, currency }: { months: TrendMonth[]; currency: Cu
       <ScreenReaderTable
         caption={`${currency} spent per month`}
         head={hasBudget ? ['Month', 'Spent', 'Budget'] : ['Month', 'Spent']}
-        rows={months.map((m) => {
+        rows={months.map((m, i) => {
+          if (!tracked(i)) {
+            const row = [shortMonthLabel(m.month), 'Not tracked yet']
+            if (hasBudget) row.push('None')
+            return row
+          }
           const row = [
             shortMonthLabel(m.month),
             m.total === null ? 'Not yet' : formatMoney(m.total, currency),
