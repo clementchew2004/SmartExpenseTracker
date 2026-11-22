@@ -4,6 +4,10 @@
    ink and warm grey. Every text colour was checked at 4.5:1+ (controls 3:1+)
    on --bg, --surface and --raised, light and dark. */
 :root {
+  /* Motion: one strong ease-out for everything that enters or responds. The
+     built-in "ease" starts too gently, so taps feel a beat late. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+
   --bg: #f4f3f1; /* the ground: warm stone */
   --surface: #ffffff; /* cards sit white on the ground */
   --raised: #ebe8e3; /* pills, the active tab, your chat bubbles */

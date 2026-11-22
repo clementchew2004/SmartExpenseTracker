@@ -4,14 +4,17 @@ import type { PointerEvent as ReactPointerEvent } from 'react'
 import type { AskChat as Chat } from '../useAskChat'
 import { AskChat } from './AskChat'
 
-// How far the window must be dragged down before letting go closes it.
+// Letting go closes the window if it was dragged this far down...
 const SWIPE_CLOSE_PX = 80
+// ...or flicked faster than this (px per ms), however short the drag.
+const FLICK_CLOSE_SPEED = 0.11
 
 /** The round message button, bottom-right, and the chat window it opens. */
 export function ChatBubble({ chat }: { chat: Chat }) {
   const [open, setOpen] = useState(false)
   const [drag, setDrag] = useState(0) // px the window is pulled down right now
   const dragStart = useRef<number | null>(null)
+  const dragStartTime = useRef(0)
   const bubble = useRef<HTMLButtonElement>(null)
 
   // "Answer ready" dot: answers that finished while the window was closed.
@@ -34,20 +37,24 @@ export function ChatBubble({ chat }: { chat: Chat }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [open])
 
-  // Swipe down on the grab handle: follow the finger, close past the threshold.
+  // Swipe down on the grab handle: follow the finger, close past the threshold
+  // or on a quick flick.
   function onPointerDown(e: ReactPointerEvent<HTMLDivElement>) {
+    if (dragStart.current !== null) return // a second finger mid-drag: ignore it
     dragStart.current = e.clientY
+    dragStartTime.current = e.timeStamp
     e.currentTarget.setPointerCapture(e.pointerId)
   }
   function onPointerMove(e: ReactPointerEvent<HTMLDivElement>) {
     if (dragStart.current === null) return
     setDrag(Math.max(0, e.clientY - dragStart.current))
   }
-  function onPointerUp() {
+  function onPointerUp(e: ReactPointerEvent<HTMLDivElement>) {
     if (dragStart.current === null) return
     dragStart.current = null
-    if (drag > SWIPE_CLOSE_PX) close()
-    else setDrag(0) // not far enough: spring back
+    const speed = drag / Math.max(e.timeStamp - dragStartTime.current, 1)
+    if (drag > SWIPE_CLOSE_PX || (drag > 0 && speed > FLICK_CLOSE_SPEED)) close()
+    else setDrag(0) // not far or fast enough: spring back
   }
 
   return (

@@ -1,4 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
+import type { Ref } from 'react'
+import { flushSync } from 'react-dom'
 
 import type { Currency, CurrencyWeek, WeekSummary } from '../api/client'
 import { streamWeekSentence } from '../api/client'
@@ -22,6 +24,14 @@ export function WeeklySummaries({ currency }: Props) {
   const all = weeks.data?.weeks ?? []
   const shown = showEarlier ? all : all.slice(0, 1)
   const hidden = all.length - shown.length
+  const firstEarlier = useRef<HTMLElement>(null)
+
+  function revealEarlier() {
+    // The button disappears, so move focus to the first week it revealed (not
+    // to the top of the page) - after React has drawn it.
+    flushSync(() => setShowEarlier(true))
+    firstEarlier.current?.focus()
+  }
 
   return (
     <section className="weekly" aria-label="This month's weeks" aria-busy={weeks.isPending}>
@@ -47,15 +57,17 @@ export function WeeklySummaries({ currency }: Props) {
         </p>
       )}
       {weeks.data &&
-        shown.map((week) => (
-          <WeekCard key={week.week_start} week={week} month={weeks.data.month} currency={currency} />
+        shown.map((week, i) => (
+          <WeekCard
+            key={week.week_start}
+            ref={i === 1 ? firstEarlier : undefined}
+            week={week}
+            month={weeks.data.month}
+            currency={currency}
+          />
         ))}
       {hidden > 0 && (
-        <button
-          type="button"
-          className="secondary small show-earlier"
-          onClick={() => setShowEarlier(true)}
-        >
+        <button type="button" className="secondary small show-earlier" onClick={revealEarlier}>
           Show earlier weeks ({hidden})
         </button>
       )}
@@ -64,10 +76,12 @@ export function WeeklySummaries({ currency }: Props) {
 }
 
 function WeekCard({
+  ref,
   week,
   month,
   currency,
 }: {
+  ref?: Ref<HTMLElement>
   week: WeekSummary
   month: string
   currency: Currency
@@ -77,7 +91,8 @@ function WeekCard({
   const label = weekLabel(week.week_start, week.week_end)
 
   return (
-    <article className="card week-card" aria-label={`Week of ${label}`}>
+    // tabIndex -1: focusable from code (after "Show earlier weeks"), not a Tab stop.
+    <article ref={ref} tabIndex={-1} className="card week-card" aria-label={`Week of ${label}`}>
       <p className="week-heading">
         {label}
         {week.in_progress && <span className="muted"> · so far</span>}

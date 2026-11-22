@@ -186,7 +186,7 @@ function BudgetCard({
   const spent = formatMoney(budget.spent, budget.currency)
   const total = formatMoney(budget.amount, budget.currency)
   // Only for drawing the bar's width - money maths stays on the server, in Decimal.
-  const fill = Math.min(Number(budget.spent) / Number(budget.amount), 1) * 100
+  const fill = Math.min(Number(budget.spent) / Number(budget.amount), 1)
 
   return (
     <div className="card budget-card">
@@ -208,7 +208,7 @@ function BudgetCard({
         )}
       </div>
       <div className={`budget-bar ${TONE[budget.outlook]}`} role="img" aria-label={`${spent} of ${total} spent`}>
-        <div className="budget-fill" style={{ width: `${fill}%` }} />
+        <div className="budget-fill" style={{ transform: `scaleX(${fill})` }} />
       </div>
       {verdict && <p className={`budget-verdict ${TONE[budget.outlook]}`}>{verdict}</p>}
 

@@ -44,6 +44,50 @@ button {
   color: var(--accent-text);
   font-weight: 600;
   cursor: pointer;
+  transition: transform 120ms var(--ease-out);
+}
+
+/* Press feedback: a slight shrink while held, so every tap feels heard. */
+button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button:active:not(:disabled) {
+    transform: none;
+  }
+}
+
+/* Things that appear (parsed cards, notices, the undo bar, revealed weeks) fade
+   in and rise a little instead of popping in. `translate` is its own property,
+   so it adds to any centring `transform` the element already has. */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    translate: 0 8px;
+  }
+}
+
+.quick-add > .card:not(.skeleton),
+.quick-add > .notice,
+.undo-bar,
+.week-card {
+  animation: rise-in 200ms var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .quick-add > .card:not(.skeleton),
+  .quick-add > .notice,
+  .undo-bar,
+  .week-card {
+    animation-name: fade-in; /* fewer, gentler: opacity only, no movement */
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
 }
 
 /* Disabled stays legible (grey text on grey, 4.5:1+), never a faded black. */
@@ -794,11 +838,13 @@ button.danger-link {
   overflow: hidden;
 }
 
+/* Full width, scaled from the left: transform skips layout, so the fill stays
+   smooth. The track's rounded ends and overflow clip it. */
 .budget-fill {
   height: 100%;
-  border-radius: 6px;
   background: var(--bar-colour);
-  transition: width 0.4s ease;
+  transform-origin: left;
+  transition: transform 300ms var(--ease-out);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1281,14 +1327,16 @@ button.chip {
   border-radius: 12px;
   box-shadow: 0 12px 40px rgb(0 0 0 / 0.35); /* taste-skill-ignore: it floats */
   overflow: hidden;
-  transition: transform 0.2s ease;
-  animation: chat-window-in 0.18s ease-out;
+  /* It grows out of the bubble below its right corner, not from its middle. */
+  transform-origin: bottom right;
+  transition: transform 200ms var(--ease-out); /* springing back after a short drag */
+  animation: chat-window-in 200ms var(--ease-out);
 }
 
 @keyframes chat-window-in {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: scale(0.96);
   }
 }
 
