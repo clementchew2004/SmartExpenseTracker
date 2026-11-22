@@ -8,12 +8,13 @@ import { useMe, useUpdateMe } from '../api/hooks'
 import { CURRENCIES } from '../api/options'
 import { Chevron } from '../components/Icon'
 import { RepeatList } from '../components/RepeatList'
+import { UsualBudgets } from '../components/UsualBudgets'
 import type { Theme } from '../theme'
 import { applyTheme, savedTheme } from '../theme'
 import { useAuth } from '../useAuth'
 
-/** Your order: Account, Appearance, Your data, Repeating expenses, Help, Log out,
- * and Delete my account last, on its own. */
+/** Your order: Account, Budget, Appearance, Your data, Repeating expenses, Help,
+ * Log out, and Delete my account last, on its own. */
 export function SettingsPage() {
   const { logOut } = useAuth()
   const navigate = useNavigate()
@@ -29,6 +30,10 @@ export function SettingsPage() {
     <div className="settings">
       <h1>Settings</h1>
       <Account />
+      <Section title="Budget">
+        <p className="hint">Your usual monthly amount, used for any month you don't set yourself.</p>
+        <UsualBudgets />
+      </Section>
       <Appearance />
       <YourData />
       <RepeatList />

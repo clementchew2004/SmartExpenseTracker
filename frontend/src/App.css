@@ -97,13 +97,13 @@ select {
   gap: 8px;
 }
 
-.input-row button {
+.quick-add .input-row button {
   flex: 1;
   white-space: nowrap;
 }
 
 /* The camera button: square, beside "Read it". */
-.input-row .icon-button {
+.quick-add .input-row .icon-button {
   flex: 0 0 44px;
   padding: 0;
   display: grid;
@@ -777,7 +777,7 @@ button.danger-link {
 .budget-numbers {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
   gap: 12px;
   font-size: 1.0625rem;
 }
@@ -842,7 +842,12 @@ button.danger-link {
 .amount-form {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
+}
+
+/* Cancel at its own size under the box, not a second full-width bar. */
+.amount-form > button {
+  align-self: flex-start;
 }
 
 .amount-symbol {
@@ -853,20 +858,27 @@ button.danger-link {
 }
 
 .amount-form input {
+  flex: 1;
+  min-width: 0;
   font-size: 1rem;
   color: var(--text);
 }
 
-.usual-budgets ul {
+.amount-form .input-row button {
+  flex: 0 0 auto;
+  padding: 0 20px;
+}
+
+ul.usual-budgets {
   list-style: none;
-  margin: 12px 0 0;
+  margin: 4px 0 0;
   padding: 0;
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.usual-budgets li {
+ul.usual-budgets li {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -875,7 +887,7 @@ button.danger-link {
   min-height: 44px;
 }
 
-.usual-budgets li .amount-form {
+ul.usual-budgets li .amount-form {
   flex: 1;
 }
 

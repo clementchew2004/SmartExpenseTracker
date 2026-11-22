@@ -1,15 +1,11 @@
-import { useId, useState } from 'react'
+import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { useSearchParams } from 'react-router'
 
-import type { BudgetStatus, Currency, MonthBudgets, Outlook } from '../api/client'
-import {
-  useBudgets,
-  useDeleteDefaultBudget,
-  useSetDefaultBudget,
-  useSetMonthBudget,
-} from '../api/hooks'
-import { CURRENCIES, CURRENCY_SYMBOL, formatMoney } from '../api/options'
+import type { BudgetStatus, Currency, Outlook } from '../api/client'
+import { useBudgets, useSetDefaultBudget, useSetMonthBudget } from '../api/hooks'
+import { formatMoney } from '../api/options'
+import { AmountForm } from '../components/AmountForm'
 import { Chevron } from '../components/Icon'
 import { isMonthKey, monthKey, monthLabel, shiftMonth } from '../dates'
 
@@ -92,8 +88,6 @@ export function BudgetPage() {
           <BudgetCard key={b.currency} month={month} budget={b} canChange={month >= thisMonth} />
         ))
       )}
-
-      <UsualBudgets defaults={data.defaults} />
     </section>
   )
 }
@@ -176,7 +170,7 @@ function MonthPrompt({ month, budget }: { month: string; budget: BudgetStatus })
   )
 }
 
-/** One currency: "£620 of £800", the coloured bar, your verdict, and Change. */
+/** One currency: "£620 of £800" with Edit, the coloured bar, and your verdict. */
 function BudgetCard({
   month,
   budget,
@@ -196,158 +190,40 @@ function BudgetCard({
 
   return (
     <div className="card budget-card">
+      {/* One small Edit beside the numbers it changes (your usual amounts are in Settings). */}
       <div className="budget-numbers">
         <span>
           <strong>{spent}</strong> of {total}
+          {budget.source === 'default' && <span className="hint"> · usual amount</span>}
         </span>
-        {budget.source === 'default' && <span className="hint">usual amount</span>}
+        {canChange && !changing && (
+          <button
+            type="button"
+            className="secondary small"
+            aria-label={`Edit ${budget.currency} budget for ${monthLabel(month)}`}
+            onClick={() => setChanging(true)}
+          >
+            Edit
+          </button>
+        )}
       </div>
       <div className={`budget-bar ${TONE[budget.outlook]}`} role="img" aria-label={`${spent} of ${total} spent`}>
         <div className="budget-fill" style={{ width: `${fill}%` }} />
       </div>
       {verdict && <p className={`budget-verdict ${TONE[budget.outlook]}`}>{verdict}</p>}
 
-      {canChange &&
-        (changing ? (
-          <AmountForm
-            currency={budget.currency}
-            initial={budget.amount}
-            submitLabel="Save"
-            onCancel={() => setChanging(false)}
-            onSubmit={async (amount) => {
-              await setMonth.mutateAsync({ month, currency: budget.currency, amount })
-              setChanging(false)
-            }}
-          />
-        ) : (
-          <button type="button" className="secondary small" onClick={() => setChanging(true)}>
-            Change {monthLabel(month)} budget
-          </button>
-        ))}
-    </div>
-  )
-}
-
-/** Your usual amounts: used for any month you don't set yourself. */
-function UsualBudgets({ defaults }: { defaults: MonthBudgets['defaults'] }) {
-  const [editing, setEditing] = useState<Currency | null>(null)
-  const setDefault = useSetDefaultBudget()
-  const remove = useDeleteDefaultBudget()
-
-  return (
-    <div className="usual-budgets">
-      <h2>Usual monthly budget</h2>
-      <ul>
-        {CURRENCIES.map((currency) => {
-          const amount = defaults[currency]
-          return (
-            <li key={currency}>
-              {editing === currency ? (
-                <AmountForm
-                  currency={currency}
-                  initial={amount ?? ''}
-                  submitLabel="Save"
-                  onCancel={() => setEditing(null)}
-                  onSubmit={async (value) => {
-                    await setDefault.mutateAsync({ currency, amount: value })
-                    setEditing(null)
-                  }}
-                />
-              ) : (
-                <>
-                  <span>
-                    {currency}: {amount ? formatMoney(amount, currency) : <span className="muted">not set</span>}
-                  </span>
-                  <span className="usual-actions">
-                    <button
-                      type="button"
-                      className="secondary small"
-                      onClick={() => setEditing(currency)}
-                    >
-                      {amount ? 'Edit' : 'Set'}
-                    </button>
-                    {amount && (
-                      <button
-                        type="button"
-                        className="secondary small"
-                        onClick={() => remove.mutate(currency)}
-                      >
-                        Remove
-                      </button>
-                    )}
-                  </span>
-                </>
-              )}
-            </li>
-          )
-        })}
-      </ul>
-    </div>
-  )
-}
-
-/** An amount box with Save (and optional Cancel). The server checks the amount. */
-function AmountForm({
-  currency,
-  initial,
-  submitLabel,
-  onSubmit,
-  onCancel,
-}: {
-  currency: Currency
-  initial: string
-  submitLabel: string
-  onSubmit: (amount: string) => Promise<unknown>
-  onCancel?: () => void
-}) {
-  const [amount, setAmount] = useState(initial)
-  const [error, setError] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
-  const inputId = useId() // unique even when two GBP forms are open at once
-
-  async function handleSubmit(event: FormEvent) {
-    event.preventDefault()
-    setBusy(true)
-    setError(null)
-    try {
-      await onSubmit(amount.trim())
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Something went wrong')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return (
-    <form className="amount-form" onSubmit={handleSubmit}>
-      <div className="input-row">
-        <label className="visually-hidden" htmlFor={inputId}>
-          Amount in {currency}
-        </label>
-        <span className="amount-symbol" aria-hidden="true">
-          {CURRENCY_SYMBOL[currency]}
-        </span>
-        <input
-          id={inputId}
-          inputMode="decimal"
-          required
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
+      {canChange && changing && (
+        <AmountForm
+          currency={budget.currency}
+          initial={budget.amount}
+          submitLabel="Save"
+          onCancel={() => setChanging(false)}
+          onSubmit={async (amount) => {
+            await setMonth.mutateAsync({ month, currency: budget.currency, amount })
+            setChanging(false)
+          }}
         />
-        <button type="submit" disabled={busy}>
-          {busy ? 'Saving…' : submitLabel}
-        </button>
-      </div>
-      {onCancel && (
-        <button type="button" className="secondary small" onClick={onCancel}>
-          Cancel
-        </button>
       )}
-      {error && (
-        <p className="error" role="alert">
-          {error}
-        </p>
-      )}
-    </form>
+    </div>
   )
 }
