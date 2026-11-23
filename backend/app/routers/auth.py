@@ -45,7 +45,8 @@ DbSession = Annotated[Session, Depends(get_db)]
 RefreshCookie = Annotated[str | None, Cookie(alias="refresh_token")]
 
 REFRESH_COOKIE = "refresh_token"
-COOKIE_PATH = "/auth"  # the cookie is only ever sent to these endpoints
+# The cookie is only ever sent to the auth endpoints: COOKIE_PATH in config.py
+# ("/auth" on your laptop, "/api/auth" behind the production proxy).
 
 
 # --- Cookie helpers ------------------------------------------------------------
@@ -61,14 +62,14 @@ def set_refresh_cookie(
         httponly=True,  # JavaScript can't read it, so an XSS bug can't steal it
         secure=get_settings().COOKIE_SECURE,
         samesite="lax",  # other websites can't make the browser send it
-        path=COOKIE_PATH,
+        path=get_settings().COOKIE_PATH,
     )
 
 
 def clear_refresh_cookie(response: Response) -> None:
     response.delete_cookie(
         REFRESH_COOKIE,
-        path=COOKIE_PATH,
+        path=get_settings().COOKIE_PATH,
         httponly=True,
         secure=get_settings().COOKIE_SECURE,
         samesite="lax",

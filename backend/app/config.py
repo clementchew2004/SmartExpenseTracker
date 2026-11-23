@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_DAYS: int = 30  # counted from login, not extended by refreshing
     # Secure cookies are only sent over HTTPS: off for http:// dev, on in production.
     COOKIE_SECURE: bool = False
+    # The refresh cookie is only sent to addresses starting with this. In
+    # production the browser reaches the API through the Vercel proxy, where these
+    # routes look like /api/auth/..., so it's set to /api/auth there.
+    COOKIE_PATH: str = "/auth"
 
 
 @lru_cache

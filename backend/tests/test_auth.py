@@ -4,6 +4,7 @@ import pytest
 from sqlalchemy import select
 
 from app.auth import decode_access_token, hash_refresh_token, utcnow
+from app.config import get_settings
 from app.models import InviteCode, RefreshToken, User
 
 
@@ -132,6 +133,17 @@ def test_login_returns_access_token_and_sets_refresh_cookie(anon_client, user):
     assert "HttpOnly" in cookie
     assert "Path=/auth" in cookie
     assert "SameSite=lax" in cookie
+
+
+def test_cookie_path_follows_the_setting(anon_client, user, monkeypatch):
+    # Production: the browser sees these routes as /api/auth/... through the proxy.
+    monkeypatch.setattr(get_settings(), "COOKIE_PATH", "/api/auth")
+    login_cookie = login(anon_client).headers["set-cookie"]
+
+    logout_cookie = anon_client.post("/auth/logout").headers["set-cookie"]
+
+    assert "Path=/api/auth" in login_cookie
+    assert "Path=/api/auth" in logout_cookie  # deleting must match the same path
 
 
 @pytest.mark.parametrize(

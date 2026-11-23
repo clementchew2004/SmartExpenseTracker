@@ -1,0 +1,16 @@
+# Files Docker leaves out of the image. Secrets above all: the image must never
+# contain your keys, so .env stays on your Mac.
+.env
+.env.*
+!.env.example
+
+# Your Mac's own Python install and caches: the image installs its own.
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# Not needed to run the API.
+tests/
+evals/
